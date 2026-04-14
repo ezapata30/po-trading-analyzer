@@ -4,514 +4,358 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PO Trading Analyzer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.js" crossorigin></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #080C12; color: #E8F0FE; font-family: monospace; }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: #0D1520; }
-  ::-webkit-scrollbar-thumb { background: #1E2D40; border-radius: 3px; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080C12;color:#E8F0FE;font-family:monospace;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#1E2D40;border-radius:3px}
+button{font-family:monospace}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useMemo, useRef } = React;
-const { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
-        ResponsiveContainer, CartesianGrid, ReferenceLine, Cell } = Recharts;
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#546E7A;font-family:monospace;font-size:13px;letter-spacing:2px">LOADING...</div></div>
+<script>
+const {useState,useMemo,useRef,createElement:h}=React;
+const html=htm.bind(h);
+const {AreaChart,Area,BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid,ReferenceLine,Cell}=Recharts;
 
-const C = {
-  bg:"#080C12",surface:"#0D1520",card:"#111927",cardBorder:"#1E2D40",
-  green:"#00E676",red:"#FF1744",gold:"#FFD600",blue:"#2979FF",
-  cyan:"#00E5FF",purple:"#D500F9",text:"#E8F0FE",muted:"#546E7A",faint:"#1A2535",
-};
+const C={bg:"#080C12",surface:"#0D1520",card:"#111927",cardBorder:"#1E2D40",green:"#00E676",red:"#FF1744",gold:"#FFD600",blue:"#2979FF",cyan:"#00E5FF",purple:"#D500F9",text:"#E8F0FE",muted:"#546E7A",faint:"#1A2535"};
 
-function addCumPL(arr){
-  let c=0;
-  return arr.map(t=>{c=+(c+t.payout).toFixed(2);return{...t,cumPL:c};});
-}
-
-function fmtHour(h){
-  const hr=parseInt(h);
-  if(hr===0) return "12am";
-  if(hr<12) return hr+"am";
-  if(hr===12) return "12pm";
-  return (hr-12)+"pm";
-}
+function addCumPL(arr){let c=0;return arr.map(t=>{c=+(c+t.payout).toFixed(2);return{...t,cumPL:c}});}
+function fmtHour(h){const hr=parseInt(h);if(hr===0)return"12am";if(hr<12)return hr+"am";if(hr===12)return"12pm";return(hr-12)+"pm";}
+function fmtMoney(v){return(v>=0?"+":"")+v.toFixed(2);}
 
 const RAW=[{"id": 64, "openTime": "2026-04-11 08:48:35", "closeTime": "2026-04-11 08:51:35", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 185.84, "payout": -185.84, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 8, "openPrice": 1.06722, "closePrice": 1.06719, "cumPL": -185.84, "orderId": "675e673b-5952-4027-aefa-de49301dffe5"}, {"id": 63, "openTime": "2026-04-11 16:25:55", "closeTime": "2026-04-11 16:28:55", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 1.0, "payout": -1.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.06607, "closePrice": 1.06478, "cumPL": -186.84, "orderId": "efb6e72f-069c-4573-96af-16963122f3c4"}, {"id": 62, "openTime": "2026-04-11 18:42:00", "closeTime": "2026-04-11 18:45:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.07076, "closePrice": 1.07132, "cumPL": 2573.16, "orderId": "627ee588-a922-4502-bcb2-eb1605b604e1"}, {"id": 61, "openTime": "2026-04-11 18:53:00", "closeTime": "2026-04-11 18:56:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.07093, "closePrice": 1.07082, "cumPL": -426.84, "orderId": "7368308c-6ef6-445c-ac1b-6c3ef930c71f"}, {"id": 60, "openTime": "2026-04-11 19:11:00", "closeTime": "2026-04-11 19:14:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 19, "openPrice": 1.06916, "closePrice": 1.06877, "cumPL": -3426.84, "orderId": "5334e599-0a60-420a-8ca1-a5ffc2a0dc8a"}, {"id": 59, "openTime": "2026-04-11 20:12:00", "closeTime": "2026-04-11 20:15:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 20, "openPrice": 1.0706, "closePrice": 1.07122, "cumPL": -6426.84, "orderId": "12efb9bf-0318-464e-b63e-06f5d56004d7"}, {"id": 58, "openTime": "2026-04-11 21:07:00", "closeTime": "2026-04-11 21:10:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 21, "openPrice": 1.06532, "closePrice": 1.06768, "cumPL": -9426.84, "orderId": "30daaadb-48a3-4fec-ad5e-f06cb25df7aa"}, {"id": 57, "openTime": "2026-04-11 21:22:00", "closeTime": "2026-04-11 21:25:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 21, "openPrice": 1.07112, "closePrice": 1.07037, "cumPL": -12426.84, "orderId": "e7165be5-0496-4e78-92fa-e2c18550e11e"}, {"id": 56, "openTime": "2026-04-11 22:06:00", "closeTime": "2026-04-11 22:09:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.07097, "closePrice": 1.07064, "cumPL": -9666.84, "orderId": "96099e91-92b0-43aa-ba5e-f07a536acf2d"}, {"id": 55, "openTime": "2026-04-11 22:16:00", "closeTime": "2026-04-11 22:19:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.07184, "closePrice": 1.0704, "cumPL": -12666.84, "orderId": "42699a91-4aa3-4c69-9d28-fea03e94e48f"}, {"id": 54, "openTime": "2026-04-11 22:23:00", "closeTime": "2026-04-11 22:26:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.07152, "closePrice": 1.07097, "cumPL": -15666.84, "orderId": "f612e930-6942-4e48-9c93-b2b368209e02"}, {"id": 53, "openTime": "2026-04-11 22:28:00", "closeTime": "2026-04-11 22:31:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.06986, "closePrice": 1.06994, "cumPL": -12906.84, "orderId": "417fb43c-c946-481a-82b4-cf029fedc77b"}, {"id": 52, "openTime": "2026-04-11 22:35:00", "closeTime": "2026-04-11 22:38:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.06957, "closePrice": 1.06872, "cumPL": -10146.84, "orderId": "d97effb3-9422-47d4-8f82-879950929af4"}, {"id": 51, "openTime": "2026-04-11 22:43:00", "closeTime": "2026-04-11 22:46:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.07102, "closePrice": 1.07103, "cumPL": -7386.84, "orderId": "06aa81b9-af63-4b65-afe9-49494982b929"}, {"id": 50, "openTime": "2026-04-11 22:50:00", "closeTime": "2026-04-11 22:53:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.06976, "closePrice": 1.07065, "cumPL": -10386.84, "orderId": "bbf6dc18-01fe-41dc-9370-12c0cfa03d33"}, {"id": 49, "openTime": "2026-04-11 22:59:00", "closeTime": "2026-04-11 23:02:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.07072, "closePrice": 1.06948, "cumPL": -7626.84, "orderId": "6eff935b-b136-4642-a3be-cc500c60a026"}, {"id": 48, "openTime": "2026-04-11 23:11:00", "closeTime": "2026-04-11 23:14:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.06987, "closePrice": 1.07103, "cumPL": -4866.84, "orderId": "04e45453-a32e-4b79-90d8-5f94ff58a313"}, {"id": 47, "openTime": "2026-04-11 23:22:00", "closeTime": "2026-04-11 23:25:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.07089, "closePrice": 1.06986, "cumPL": -7866.84, "orderId": "1c37b4a9-e7b4-4a33-ad68-af7d336d053b"}, {"id": 46, "openTime": "2026-04-11 23:27:00", "closeTime": "2026-04-11 23:30:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.06938, "closePrice": 1.06601, "cumPL": -5106.84, "orderId": "c782b463-82ff-4274-8336-cf40880e8a5b"}, {"id": 45, "openTime": "2026-04-11 23:43:00", "closeTime": "2026-04-11 23:46:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.06603, "closePrice": 1.06706, "cumPL": -2346.84, "orderId": "1e92acec-47bd-4643-8078-263c9def43a9"}, {"id": 44, "openTime": "2026-04-11 23:56:00", "closeTime": "2026-04-11 23:59:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.06616, "closePrice": 1.06549, "cumPL": 413.16, "orderId": "649444d9-19ee-4282-bf74-fb8e1c20c7c1"}, {"id": 43, "openTime": "2026-04-12 00:36:00", "closeTime": "2026-04-12 00:39:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.06728, "closePrice": 1.06661, "cumPL": -2586.84, "orderId": "d45222b8-4864-4e0f-910b-35a065997c2c"}, {"id": 42, "openTime": "2026-04-12 01:33:00", "closeTime": "2026-04-12 01:36:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.0692, "closePrice": 1.07053, "cumPL": -5586.84, "orderId": "cf672577-57d7-4d3b-aec9-bd4ee3aefce4"}, {"id": 41, "openTime": "2026-04-12 01:39:00", "closeTime": "2026-04-12 01:42:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.0712, "closePrice": 1.07036, "cumPL": -2826.84, "orderId": "c7d0a845-de1c-4eb1-b5e6-07fb486f3fc8"}, {"id": 40, "openTime": "2026-04-12 01:56:00", "closeTime": "2026-04-12 01:59:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.06758, "closePrice": 1.06786, "cumPL": -5826.84, "orderId": "e767848b-4b94-456a-b587-6a3f37674047"}, {"id": 39, "openTime": "2026-04-12 02:02:00", "closeTime": "2026-04-12 02:05:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06898, "closePrice": 1.0692, "cumPL": -3066.84, "orderId": "c9912b82-3f4d-47ad-814d-f81428ac9d26"}, {"id": 38, "openTime": "2026-04-12 02:16:00", "closeTime": "2026-04-12 02:19:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": -3000.0, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06824, "closePrice": 1.06657, "cumPL": -6066.84, "orderId": "2fe9c7c6-9815-4b79-8387-8300b0109c16"}, {"id": 37, "openTime": "2026-04-12 02:36:00", "closeTime": "2026-04-12 02:39:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06596, "closePrice": 1.06745, "cumPL": -3306.84, "orderId": "bd798d35-1b20-4d51-8f54-c2990faf030c"}, {"id": 36, "openTime": "2026-04-12 02:43:00", "closeTime": "2026-04-12 02:46:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06577, "closePrice": 1.06448, "cumPL": -546.84, "orderId": "8d8b1337-08e0-4dc6-aa1c-5d0712402b05"}, {"id": 35, "openTime": "2026-04-12 02:55:00", "closeTime": "2026-04-12 02:58:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06501, "closePrice": 1.06618, "cumPL": 2213.16, "orderId": "3db76b93-6438-4147-a77d-38332d176b70"}, {"id": 34, "openTime": "2026-04-12 03:05:00", "closeTime": "2026-04-12 03:08:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 3000.0, "payout": 2760.0, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.06576, "closePrice": 1.06644, "cumPL": 4973.16, "orderId": "c5b93d4c-cfd2-41ee-bf0b-3fbfa0cbb1cb"}, {"id": 33, "openTime": "2026-04-12 05:16:00", "closeTime": "2026-04-12 05:19:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 5, "openPrice": 1.05587, "closePrice": 1.05769, "cumPL": 4789.56, "orderId": "4cde6519-c20d-431c-bd6e-e84aa7d46e77"}, {"id": 32, "openTime": "2026-04-12 06:10:00", "closeTime": "2026-04-12 06:13:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 6, "openPrice": 1.0629, "closePrice": 1.06453, "cumPL": 4605.96, "orderId": "c218e1f8-9adb-4484-a34f-b31f462cf768"}, {"id": 31, "openTime": "2026-04-12 06:24:00", "closeTime": "2026-04-12 06:27:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 6, "openPrice": 1.06543, "closePrice": 1.06421, "cumPL": 4422.36, "orderId": "a6758087-6294-4ba5-9d12-ab35a5142e9a"}, {"id": 30, "openTime": "2026-04-12 06:46:00", "closeTime": "2026-04-12 06:49:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 141.37, "payoutPct": 0.77, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 6, "openPrice": 1.06656, "closePrice": 1.06611, "cumPL": 4563.73, "orderId": "20565af0-54bc-4249-8eab-c5248798f2ac"}, {"id": 29, "openTime": "2026-04-12 07:05:00", "closeTime": "2026-04-12 07:08:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 7, "openPrice": 1.06394, "closePrice": 1.06482, "cumPL": 4732.64, "orderId": "2ab14726-46f5-454b-8da0-2c73a78473cc"}, {"id": 28, "openTime": "2026-04-12 07:25:00", "closeTime": "2026-04-12 07:28:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 7, "openPrice": 1.06668, "closePrice": 1.06566, "cumPL": 4549.04, "orderId": "9c1fb587-a846-4506-91e5-a636fb5acdce"}, {"id": 27, "openTime": "2026-04-12 08:39:00", "closeTime": "2026-04-12 08:42:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 8, "openPrice": 1.07074, "closePrice": 1.07352, "cumPL": 4717.95, "orderId": "8380fd4f-575c-4e26-b446-2440e3a161be"}, {"id": 26, "openTime": "2026-04-12 08:47:00", "closeTime": "2026-04-12 08:50:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 8, "openPrice": 1.0716, "closePrice": 1.0692, "cumPL": 4886.86, "orderId": "2149462e-b848-4cc2-aebf-a45b2a8ae01c"}, {"id": 25, "openTime": "2026-04-12 09:38:00", "closeTime": "2026-04-12 09:41:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.07414, "closePrice": 1.07326, "cumPL": 4703.26, "orderId": "f7535add-03e5-4512-b372-c6b8c3943aca"}, {"id": 24, "openTime": "2026-04-12 09:47:00", "closeTime": "2026-04-12 09:50:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.07322, "closePrice": 1.07215, "cumPL": 4519.66, "orderId": "d3dc45a2-a6de-46c1-b9bd-64771da33cb2"}, {"id": 23, "openTime": "2026-04-12 09:55:00", "closeTime": "2026-04-12 09:58:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 165.24, "payoutPct": 0.9, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.07327, "closePrice": 1.07371, "cumPL": 4684.9, "orderId": "e7d35499-31f6-4ec3-83d5-ad8b359fef61"}, {"id": 22, "openTime": "2026-04-12 10:42:00", "closeTime": "2026-04-12 10:45:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 10, "openPrice": 1.07985, "closePrice": 1.08076, "cumPL": 4853.81, "orderId": "c889f9c1-627a-43a2-bfc8-1e281a3ee8b2"}, {"id": 21, "openTime": "2026-04-12 10:54:00", "closeTime": "2026-04-12 10:57:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 10, "openPrice": 1.08034, "closePrice": 1.08023, "cumPL": 5022.72, "orderId": "ab4709bf-a213-42dc-b50b-7f6c68373cf9"}, {"id": 20, "openTime": "2026-04-12 11:26:00", "closeTime": "2026-04-12 11:29:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.07436, "closePrice": 1.07479, "cumPL": 4839.12, "orderId": "dd96dd91-2b3c-4d5c-83f2-e84af60d609e"}, {"id": 19, "openTime": "2026-04-12 11:40:00", "closeTime": "2026-04-12 11:43:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.07667, "closePrice": 1.07646, "cumPL": 5008.03, "orderId": "7823ef2b-0ada-4117-a034-dc9b36c0f72b"}, {"id": 18, "openTime": "2026-04-12 11:45:00", "closeTime": "2026-04-12 11:48:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.07577, "closePrice": 1.07494, "cumPL": 4824.43, "orderId": "c8110924-1709-4ac3-b7ad-0e8812902cb1"}, {"id": 17, "openTime": "2026-04-12 11:52:00", "closeTime": "2026-04-12 11:55:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.07386, "closePrice": 1.07375, "cumPL": 4993.34, "orderId": "15b1c51a-541a-4202-96da-c4823e553764"}, {"id": 16, "openTime": "2026-04-12 11:58:00", "closeTime": "2026-04-12 12:01:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.07401, "closePrice": 1.07396, "cumPL": 4809.74, "orderId": "bb3b54ba-f4af-4fbc-ae77-f713222c4672"}, {"id": 15, "openTime": "2026-04-12 12:19:00", "closeTime": "2026-04-12 12:22:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 12, "openPrice": 1.07248, "closePrice": 1.07179, "cumPL": 4626.14, "orderId": "c9931df2-bcf4-400f-a8fc-5be06ce26e77"}, {"id": 14, "openTime": "2026-04-12 12:24:00", "closeTime": "2026-04-12 12:27:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 12, "openPrice": 1.07088, "closePrice": 1.0748, "cumPL": 4442.54, "orderId": "c186fa8f-3344-4ee7-9e9e-e96ddec8d1d8"}, {"id": 13, "openTime": "2026-04-12 12:41:00", "closeTime": "2026-04-12 12:44:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 12, "openPrice": 1.07731, "closePrice": 1.07736, "cumPL": 4258.94, "orderId": "16d27dfe-d532-45f0-b0d9-5f6bdca719a8"}, {"id": 12, "openTime": "2026-04-12 13:06:00", "closeTime": "2026-04-12 13:09:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 13, "openPrice": 1.07385, "closePrice": 1.07201, "cumPL": 4075.34, "orderId": "c0119e26-88e0-4d1e-a942-b4fb57cabbbd"}, {"id": 11, "openTime": "2026-04-12 13:30:00", "closeTime": "2026-04-12 13:33:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 13, "openPrice": 1.06823, "closePrice": 1.06804, "cumPL": 4244.25, "orderId": "ef4866fe-ffa0-432d-97c8-aa2aeb1043a1"}, {"id": 10, "openTime": "2026-04-12 13:41:00", "closeTime": "2026-04-12 13:44:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 13, "openPrice": 1.06879, "closePrice": 1.06875, "cumPL": 4060.65, "orderId": "9bf8a877-70a8-4c26-a4ac-5190b7ed39fe"}, {"id": 9, "openTime": "2026-04-12 13:54:00", "closeTime": "2026-04-12 13:57:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 13, "openPrice": 1.06738, "closePrice": 1.06611, "cumPL": 3877.05, "orderId": "2047abf3-a608-4f0e-b3f2-a56e8b584a9f"}, {"id": 8, "openTime": "2026-04-12 15:26:00", "closeTime": "2026-04-12 15:29:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 15, "openPrice": 1.06099, "closePrice": 1.06369, "cumPL": 3693.45, "orderId": "fe18ff2a-00d6-4353-b16c-f0953c403726"}, {"id": 7, "openTime": "2026-04-12 15:41:00", "closeTime": "2026-04-12 15:44:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 15, "openPrice": 1.06707, "closePrice": 1.06671, "cumPL": 3509.85, "orderId": "46ed0cf1-52fc-4db7-a272-932b3e79c031"}, {"id": 6, "openTime": "2026-04-12 15:47:00", "closeTime": "2026-04-12 15:50:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 161.57, "payoutPct": 0.88, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 15, "openPrice": 1.06629, "closePrice": 1.06549, "cumPL": 3671.42, "orderId": "2884456c-e778-47c9-89eb-d1b41bc48234"}, {"id": 5, "openTime": "2026-04-12 15:53:00", "closeTime": "2026-04-12 15:56:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 15, "openPrice": 1.0641, "closePrice": 1.06206, "cumPL": 3840.33, "orderId": "661d490e-bd61-4742-8ec1-50a4bd24e018"}, {"id": 4, "openTime": "2026-04-12 16:07:00", "closeTime": "2026-04-12 16:10:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.06182, "closePrice": 1.0614, "cumPL": 3656.73, "orderId": "efffef21-a601-4369-8612-180ef12f1ca2"}, {"id": 3, "openTime": "2026-04-12 16:35:00", "closeTime": "2026-04-12 16:38:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.06104, "closePrice": 1.0623, "cumPL": 3825.64, "orderId": "8ee96d81-33bd-4cd7-9272-f789234bb7e4"}, {"id": 2, "openTime": "2026-04-12 16:53:00", "closeTime": "2026-04-12 16:56:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.06417, "closePrice": 1.0633, "cumPL": 3642.04, "orderId": "3fb1920a-4c64-49b6-be04-3662c4bfc2c7"}, {"id": 1, "openTime": "2026-04-12 17:15:00", "closeTime": "2026-04-12 17:18:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 17, "openPrice": 1.06692, "closePrice": 1.06828, "cumPL": 3458.44, "orderId": "8ac1e727-e6b5-4b02-a403-6ab0d572af81"}, {"orderId": "feda5f99-334a-47c0-a730-02bf7e4dbcea", "openTime": "2026-04-13 00:21:00", "closeTime": "2026-04-13 00:24:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.06436, "closePrice": 1.06384, "id": 70, "cumPL": 3627.35}, {"orderId": "e7cdfbca-d3ba-4ab8-8220-21d831511291", "openTime": "2026-04-13 00:31:00", "closeTime": "2026-04-13 00:34:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.06546, "closePrice": 1.06531, "id": 69, "cumPL": 3443.75}, {"orderId": "ca9bf053-3f1b-40c0-afc8-da6e7efe2fb5", "openTime": "2026-04-13 00:43:00", "closeTime": "2026-04-13 00:46:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.06558, "closePrice": 1.06348, "id": 68, "cumPL": 3260.15}, {"orderId": "aa0308f3-1c62-435f-9d3a-8e70c80c1b01", "openTime": "2026-04-13 01:00:00", "closeTime": "2026-04-13 01:03:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.06019, "closePrice": 1.06054, "id": 67, "cumPL": 3076.55}, {"orderId": "b4d4512d-0a4b-496a-bd75-e95e6bcd68d0", "openTime": "2026-04-13 01:11:00", "closeTime": "2026-04-13 01:14:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.06038, "closePrice": 1.06065, "id": 66, "cumPL": 3245.46}, {"orderId": "2297d91a-e138-44d2-8423-43541509faf6", "openTime": "2026-04-13 01:32:00", "closeTime": "2026-04-13 01:35:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.06068, "closePrice": 1.06084, "id": 65, "cumPL": 3414.37}, {"orderId": "82d4b1fa-b4ec-41e3-88ac-b7f033a15c78", "openTime": "2026-04-13 02:55:00", "closeTime": "2026-04-13 02:58:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.06245, "closePrice": 1.06068, "id": 97, "cumPL": 3583.28}, {"orderId": "ae7a928b-6709-4dcd-a52f-0fec516e53e6", "openTime": "2026-04-13 03:05:00", "closeTime": "2026-04-13 03:08:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.06177, "closePrice": 1.06296, "id": 96, "cumPL": 3752.19}, {"orderId": "9a641898-0e56-4bfe-a44e-42172f26a473", "openTime": "2026-04-13 03:29:00", "closeTime": "2026-04-13 03:32:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.06729, "closePrice": 1.06764, "id": 95, "cumPL": 3568.59}, {"orderId": "fd520557-e919-40cc-8675-d2d193438563", "openTime": "2026-04-13 04:26:00", "closeTime": "2026-04-13 04:29:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 154.22, "payoutPct": 0.84, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 4, "openPrice": 1.0623, "closePrice": 1.06335, "id": 94, "cumPL": 3722.81}, {"orderId": "1e0f5acd-2c12-4c4d-87f1-1fec1c7e1a5e", "openTime": "2026-04-13 05:38:00", "closeTime": "2026-04-13 05:41:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 152.39, "payoutPct": 0.83, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 5, "openPrice": 1.06001, "closePrice": 1.06118, "id": 93, "cumPL": 3875.2}, {"orderId": "55aab57f-bb73-46a3-90b7-2652fb071412", "openTime": "2026-04-13 06:42:00", "closeTime": "2026-04-13 06:45:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 6, "openPrice": 1.06885, "closePrice": 1.07029, "id": 92, "cumPL": 3691.6}, {"orderId": "d0c01acc-7b62-4cc2-8dd9-0c85f4758456", "openTime": "2026-04-13 06:57:00", "closeTime": "2026-04-13 07:00:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 145.04, "payoutPct": 0.79, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 6, "openPrice": 1.07049, "closePrice": 1.07021, "id": 91, "cumPL": 3836.64}, {"orderId": "275214fa-7858-4f91-8e04-b1aec1e62545", "openTime": "2026-04-13 07:17:00", "closeTime": "2026-04-13 07:20:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 7, "openPrice": 1.06887, "closePrice": 1.06842, "id": 90, "cumPL": 3653.04}, {"orderId": "5a594117-863f-47b4-9a67-2e587ad57860", "openTime": "2026-04-13 07:42:00", "closeTime": "2026-04-13 07:45:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 7, "openPrice": 1.06639, "closePrice": 1.06557, "id": 89, "cumPL": 3469.44}, {"orderId": "634f5613-26a0-46b0-a0c9-e67adc91abe2", "openTime": "2026-04-13 08:47:00", "closeTime": "2026-04-13 08:50:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 8, "openPrice": 1.05943, "closePrice": 1.05885, "id": 88, "cumPL": 3638.35}, {"orderId": "b64aebb2-4401-465a-8c7f-2965219cb7ac", "openTime": "2026-04-13 09:17:00", "closeTime": "2026-04-13 09:20:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.06093, "closePrice": 1.06247, "id": 87, "cumPL": 3454.75}, {"orderId": "7742c5dd-8295-409d-bf24-011595d02586", "openTime": "2026-04-13 09:49:00", "closeTime": "2026-04-13 09:52:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.06013, "closePrice": 1.06178, "id": 86, "cumPL": 3271.15}, {"orderId": "0676a7c6-111e-4cfc-b647-fa2e7d4efcf9", "openTime": "2026-04-13 09:59:00", "closeTime": "2026-04-13 10:02:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 9, "openPrice": 1.06133, "closePrice": 1.061, "id": 85, "cumPL": 3440.06}, {"orderId": "183b350c-8708-4f90-b4fa-b5613188b459", "openTime": "2026-04-13 10:16:00", "closeTime": "2026-04-13 10:19:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 10, "openPrice": 1.06422, "closePrice": 1.06352, "id": 84, "cumPL": 3256.46}, {"orderId": "73dce5a9-486c-4eb4-848f-aaafb6fe70a0", "openTime": "2026-04-13 10:21:00", "closeTime": "2026-04-13 10:24:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 10, "openPrice": 1.06541, "closePrice": 1.06574, "id": 83, "cumPL": 3425.37}, {"orderId": "1155d7c7-470f-4c3d-8c9a-ffb385779af4", "openTime": "2026-04-13 10:59:00", "closeTime": "2026-04-13 11:02:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 10, "openPrice": 1.06536, "closePrice": 1.06615, "id": 82, "cumPL": 3241.77}, {"orderId": "8f3d09ba-d294-4104-81f8-1af847527832", "openTime": "2026-04-13 11:24:00", "closeTime": "2026-04-13 11:27:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 159.73, "payoutPct": 0.87, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.06266, "closePrice": 1.06403, "id": 81, "cumPL": 3401.5}, {"orderId": "0b94ba5b-3dbb-40d6-8b7b-e1dcfcad3e3b", "openTime": "2026-04-13 11:46:00", "closeTime": "2026-04-13 11:49:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 135.86, "payoutPct": 0.74, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 11, "openPrice": 1.06281, "closePrice": 1.06153, "id": 80, "cumPL": 3537.36}, {"orderId": "d56c5b7d-da4b-43d9-b334-c703b26a23eb", "openTime": "2026-04-13 12:12:00", "closeTime": "2026-04-13 12:15:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 12, "openPrice": 1.05891, "closePrice": 1.05913, "id": 79, "cumPL": 3706.27}, {"orderId": "bf14d746-617a-4a0f-8324-a86fc4e18f0c", "openTime": "2026-04-13 12:25:00", "closeTime": "2026-04-13 12:28:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 12, "openPrice": 1.0585, "closePrice": 1.05632, "id": 78, "cumPL": 3875.18}, {"orderId": "666c606d-5170-47cd-b633-c3f7b51a4000", "openTime": "2026-04-13 13:27:00", "closeTime": "2026-04-13 13:30:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 108.32, "payoutPct": 0.59, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 13, "openPrice": 1.05063, "closePrice": 1.05167, "id": 77, "cumPL": 3983.5}, {"orderId": "b2d83da0-a3c7-4a78-a5a0-e80a37aa6118", "openTime": "2026-04-13 14:10:00", "closeTime": "2026-04-13 14:13:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 14, "openPrice": 1.04534, "closePrice": 1.04245, "id": 76, "cumPL": 3799.9}, {"orderId": "c050705d-a1e2-4ed6-bc54-2a3512ee42b6", "openTime": "2026-04-13 14:34:00", "closeTime": "2026-04-13 14:37:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 14, "openPrice": 1.04541, "closePrice": 1.04562, "id": 75, "cumPL": 3616.3}, {"orderId": "aa8b4cf4-122c-429c-8c40-8a6e021ecc0e", "openTime": "2026-04-13 16:20:00", "closeTime": "2026-04-13 16:23:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.04188, "closePrice": 1.04109, "id": 74, "cumPL": 3432.7}, {"orderId": "fee901e7-89c4-4e59-8000-e72a944e909b", "openTime": "2026-04-13 16:26:00", "closeTime": "2026-04-13 16:29:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.04128, "closePrice": 1.04117, "id": 73, "cumPL": 3249.1}, {"orderId": "a1a31489-5e7c-4956-b8da-0d770e94f124", "openTime": "2026-04-13 16:31:00", "closeTime": "2026-04-13 16:34:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 16, "openPrice": 1.03992, "closePrice": 1.03959, "id": 72, "cumPL": 3418.01}, {"orderId": "ab183728-8923-4984-932c-85ac2d990a43", "openTime": "2026-04-13 17:13:00", "closeTime": "2026-04-13 17:16:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 165.24, "payoutPct": 0.9, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 17, "openPrice": 1.03434, "closePrice": 1.0366, "id": 71, "cumPL": 3583.25}, {"orderId": "12226b05-b3d3-4235-94ca-f1b51f520639", "openTime": "2026-04-13 17:33:00", "closeTime": "2026-04-13 17:36:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 17, "openPrice": 1.03879, "closePrice": 1.03639, "id": 109, "cumPL": 3399.65}, {"orderId": "fbf9ec02-8ab9-48cd-b39b-68fe3cf6c78d", "openTime": "2026-04-13 18:19:00", "closeTime": "2026-04-13 18:22:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.03155, "closePrice": 1.03278, "id": 108, "cumPL": 3216.05}, {"orderId": "f8dac815-2edd-4aeb-8854-74b577657f9c", "openTime": "2026-04-13 18:25:00", "closeTime": "2026-04-13 18:28:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 91.8, "payoutPct": 0.5, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.03143, "closePrice": 1.03123, "id": 107, "cumPL": 3307.85}, {"orderId": "ef6a7226-b8ef-42a6-807e-1960f23440ee", "openTime": "2026-04-13 18:30:00", "closeTime": "2026-04-13 18:33:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 112.0, "payoutPct": 0.61, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.03298, "closePrice": 1.03448, "id": 106, "cumPL": 3419.85}, {"orderId": "179d01f6-0422-469d-bc06-46e37d5bd16a", "openTime": "2026-04-13 18:45:00", "closeTime": "2026-04-13 18:48:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 124.85, "payoutPct": 0.68, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.03805, "closePrice": 1.03653, "id": 105, "cumPL": 3544.7}, {"orderId": "660e2c26-0569-41bd-bca6-4c077788ffd2", "openTime": "2026-04-13 18:59:00", "closeTime": "2026-04-13 19:02:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 161.57, "payoutPct": 0.88, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 18, "openPrice": 1.03541, "closePrice": 1.03672, "id": 104, "cumPL": 3706.27}, {"orderId": "b9285400-77ee-4ac3-9394-5e10e83beaba", "openTime": "2026-04-13 19:05:00", "closeTime": "2026-04-13 19:08:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 19, "openPrice": 1.03503, "closePrice": 1.03611, "id": 103, "cumPL": 3522.67}, {"orderId": "0c55b3ee-1dfd-499a-8d98-b9ce7a9b09b9", "openTime": "2026-04-13 19:34:00", "closeTime": "2026-04-13 19:37:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 19, "openPrice": 1.03354, "closePrice": 1.03527, "id": 102, "cumPL": 3691.58}, {"orderId": "6dab2381-6d16-4055-a198-f1680821b6be", "openTime": "2026-04-13 19:40:00", "closeTime": "2026-04-13 19:43:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 19, "openPrice": 1.03458, "closePrice": 1.03709, "id": 101, "cumPL": 3507.98}, {"orderId": "488947df-dbfd-42fd-836b-93259a00d889", "openTime": "2026-04-13 19:49:00", "closeTime": "2026-04-13 19:52:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 19, "openPrice": 1.03587, "closePrice": 1.03746, "id": 100, "cumPL": 3676.89}, {"orderId": "84a946c9-0ffd-430e-8c93-211696334010", "openTime": "2026-04-13 20:03:00", "closeTime": "2026-04-13 20:06:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 20, "openPrice": 1.03554, "closePrice": 1.03573, "id": 99, "cumPL": 3493.29}, {"orderId": "5ee7131e-7c4b-4273-bab5-e11d68846c09", "openTime": "2026-04-13 20:34:00", "closeTime": "2026-04-13 20:37:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 20, "openPrice": 1.03599, "closePrice": 1.03658, "id": 98, "cumPL": 3662.2}, {"orderId": "ecdc24fc-5eef-4e8d-8dbf-d2b461da1831", "openTime": "2026-04-13 20:55:00", "closeTime": "2026-04-13 20:58:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 20, "openPrice": 1.03335, "closePrice": 1.03315, "id": 120, "cumPL": 3478.6}, {"orderId": "c9201056-fd69-4e69-b40c-52d68b908b9c", "openTime": "2026-04-13 21:07:00", "closeTime": "2026-04-13 21:10:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 21, "openPrice": 1.03347, "closePrice": 1.03319, "id": 119, "cumPL": 3295.0}, {"orderId": "771278c0-2d62-4603-aebb-4dfdfd1d37fd", "openTime": "2026-04-13 21:24:00", "closeTime": "2026-04-13 21:27:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 21, "openPrice": 1.03097, "closePrice": 1.03168, "id": 118, "cumPL": 3111.4}, {"orderId": "0122e8cb-0a1d-4729-a3ed-d76fdbcf9c34", "openTime": "2026-04-13 21:39:00", "closeTime": "2026-04-13 21:42:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 21, "openPrice": 1.03067, "closePrice": 1.03049, "id": 117, "cumPL": 2927.8}, {"orderId": "1a87bec4-3a42-4be5-a565-0657b2f5ae96", "openTime": "2026-04-13 22:06:00", "closeTime": "2026-04-13 22:09:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.0308, "closePrice": 1.03285, "id": 116, "cumPL": 2744.2}, {"orderId": "4dfd8c39-8658-4460-a33e-9f5d87439019", "openTime": "2026-04-13 22:42:00", "closeTime": "2026-04-13 22:45:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 91.8, "payoutPct": 0.5, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.03126, "closePrice": 1.03027, "id": 114, "cumPL": 2836.0}, {"orderId": "2fefc991-9ce9-442c-8e99-1b8b9a9d6968", "openTime": "2026-04-13 22:53:00", "closeTime": "2026-04-13 22:56:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 97.31, "payoutPct": 0.53, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.03046, "closePrice": 1.03057, "id": 113, "cumPL": 2933.31}, {"orderId": "ef7ba4e6-7400-4ec3-a21b-7b3e93e5824c", "openTime": "2026-04-13 22:59:00", "closeTime": "2026-04-13 23:02:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 141.37, "payoutPct": 0.77, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 22, "openPrice": 1.02825, "closePrice": 1.02774, "id": 112, "cumPL": 3074.68}, {"orderId": "48c98778-ee3d-47e3-a917-9c204b69e12a", "openTime": "2026-04-13 23:12:00", "closeTime": "2026-04-13 23:15:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.02655, "closePrice": 1.02791, "id": 111, "cumPL": 3243.59}, {"orderId": "94e41de0-117a-4fb6-871c-270634c1d74b", "openTime": "2026-04-13 23:19:53", "closeTime": "2026-04-13 23:22:53", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 167.08, "payoutPct": 0.91, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 23, "openPrice": 1.0271, "closePrice": 1.0263, "id": 110, "cumPL": 3410.67}, {"orderId": "0783a7df-6727-431f-834e-2d33d637c629", "openTime": "2026-04-14 00:16:00", "closeTime": "2026-04-14 00:19:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.02979, "closePrice": 1.02802, "id": 136, "cumPL": 3579.58}, {"orderId": "f5d3ef7d-101b-4302-aa25-ff69d2f4e2d7", "openTime": "2026-04-14 00:28:00", "closeTime": "2026-04-14 00:31:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.0294, "closePrice": 1.0292, "id": 135, "cumPL": 3395.98}, {"orderId": "079f20e1-d912-4575-a2e9-c6ac59643968", "openTime": "2026-04-14 00:35:00", "closeTime": "2026-04-14 00:38:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.02755, "closePrice": 1.02865, "id": 134, "cumPL": 3212.38}, {"orderId": "fc079bc0-e6e6-4e10-8b12-8d3ff78d57c8", "openTime": "2026-04-14 00:42:00", "closeTime": "2026-04-14 00:45:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 0, "openPrice": 1.02877, "closePrice": 1.02892, "id": 133, "cumPL": 3028.78}, {"orderId": "f55104f5-ce79-4717-9593-a127a0767cf7", "openTime": "2026-04-14 01:25:00", "closeTime": "2026-04-14 01:28:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 157.9, "payoutPct": 0.86, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.02552, "closePrice": 1.02556, "id": 132, "cumPL": 3186.68}, {"orderId": "201a1187-c97a-4301-9a64-02c6ddb53c86", "openTime": "2026-04-14 01:44:00", "closeTime": "2026-04-14 01:47:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 1, "openPrice": 1.02476, "closePrice": 1.0263, "id": 131, "cumPL": 3003.08}, {"orderId": "c1cb442d-b56f-4996-b956-a53ccb39104e", "openTime": "2026-04-14 02:30:00", "closeTime": "2026-04-14 02:33:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.02789, "closePrice": 1.02792, "id": 130, "cumPL": 2819.48}, {"orderId": "9e04fa87-5eea-49b9-8e45-c1c5f60b7630", "openTime": "2026-04-14 02:42:00", "closeTime": "2026-04-14 02:45:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.0277, "closePrice": 1.03033, "id": 129, "cumPL": 2635.88}, {"orderId": "df7982d3-d936-4362-8316-49ba1f4ba174", "openTime": "2026-04-14 02:50:00", "closeTime": "2026-04-14 02:53:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 2, "openPrice": 1.03095, "closePrice": 1.0306, "id": 128, "cumPL": 2452.28}, {"orderId": "7096f850-2532-46d6-a05b-09336e8cf8b9", "openTime": "2026-04-14 03:13:00", "closeTime": "2026-04-14 03:16:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.03187, "closePrice": 1.03071, "id": 127, "cumPL": 2621.19}, {"orderId": "d8da96b3-0f16-41fe-8bf3-587c9761149e", "openTime": "2026-04-14 03:23:00", "closeTime": "2026-04-14 03:26:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.03142, "closePrice": 1.02955, "id": 126, "cumPL": 2790.1}, {"orderId": "e16f1e83-6fc9-47f4-a543-917292304bad", "openTime": "2026-04-14 03:45:00", "closeTime": "2026-04-14 03:48:00", "asset": "AUD/CAD OTC", "direction": "PUT", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.02771, "closePrice": 1.02775, "id": 125, "cumPL": 2606.5}, {"orderId": "50553ebe-4971-4869-9c65-507e7c2b6fea", "openTime": "2026-04-14 03:56:00", "closeTime": "2026-04-14 03:59:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 3, "openPrice": 1.02673, "closePrice": 1.02764, "id": 124, "cumPL": 2775.41}, {"orderId": "cb309905-422e-4f4e-a6fd-1998c5b2558d", "openTime": "2026-04-14 04:03:00", "closeTime": "2026-04-14 04:06:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 4, "openPrice": 1.02876, "closePrice": 1.02811, "id": 123, "cumPL": 2591.81}, {"orderId": "01cb2b4a-4256-4aff-a6d2-84869c65acf3", "openTime": "2026-04-14 04:09:00", "closeTime": "2026-04-14 04:12:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": -183.6, "payoutPct": 0, "result": "LOSS", "signal": "Untagged", "autoTrade": false, "hour": 4, "openPrice": 1.0284, "closePrice": 1.02661, "id": 122, "cumPL": 2408.21}, {"orderId": "8dab84c9-0e00-4fef-8fd8-9179a4e1d954", "openTime": "2026-04-14 04:27:00", "closeTime": "2026-04-14 04:30:00", "asset": "AUD/CAD OTC", "direction": "CALL", "stake": 183.6, "payout": 168.91, "payoutPct": 0.92, "result": "WIN", "signal": "Untagged", "autoTrade": false, "hour": 4, "openPrice": 1.02648, "closePrice": 1.02656, "id": 121, "cumPL": 2577.12}];
-const REAL_TRADES=addCumPL(RAW.filter(t=>t.payout!==0));
+const SEED=addCumPL(RAW.filter(t=>t.payout!==0));
 
-function parsePOXlsx(file,onDone){
-  const reader=new FileReader();
-  reader.onload=(e)=>{
+function parsePOXlsx(file,cb){
+  const r=new FileReader();
+  r.onload=e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:"binary"});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
-      const parsed=rows.slice(1).map((row,idx)=>{
-        const direction=(row[0]||"").toString().toUpperCase();
-        const orderId=(row[1]||"").toString().trim();
-        const openTime=(row[4]||"").toString();
-        const closeTime=(row[5]||"").toString();
-        const asset=(row[3]||"UNKNOWN").toString();
-        const openPrice=parseFloat(row[6])||0;
-        const closePrice=parseFloat(row[7])||0;
-        const stake=parseFloat(row[8])||0;
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+      const parsed=rows.slice(1).map((row,i)=>{
         const profit=parseFloat(row[9])||0;
-        const result=profit>0?"WIN":"LOSS";
-        const payoutPct=stake>0&&profit>0?+(profit/stake).toFixed(4):0;
+        if(profit===0)return null;
+        const stake=parseFloat(row[8])||0;
+        const openTime=(row[4]||"").toString();
         const m=openTime.match(/(\d{1,2}):(\d{2})/);
-        const hour=m?parseInt(m[1]):0;
-        return{id:idx+1,orderId,openTime,closeTime,asset,direction:direction||"CALL",
-               stake,payout:profit,payoutPct,result,signal:"Untagged",
-               autoTrade:false,hour,openPrice,closePrice};
-      }).filter(t=>t.stake>0&&t.payout!==0);
-      onDone(parsed);
-    }catch(err){alert("Parse error: "+err.message);}
+        return{id:i+1,orderId:(row[1]||"").toString().trim(),openTime,closeTime:(row[5]||"").toString(),
+          asset:(row[3]||"UNKNOWN").toString(),direction:(row[0]||"").toString().toUpperCase()||"CALL",
+          stake,payout:profit,payoutPct:stake>0&&profit>0?+(profit/stake).toFixed(4):0,
+          result:profit>0?"WIN":"LOSS",signal:"Untagged",autoTrade:false,
+          hour:m?parseInt(m[1]):0,openPrice:parseFloat(row[6])||0,closePrice:parseFloat(row[7])||0};
+      }).filter(Boolean);
+      cb(parsed);
+    }catch(e){alert("Parse error: "+e.message);}
   };
-  reader.readAsBinaryString(file);
+  r.readAsBinaryString(file);
 }
 
-const Tag=({children,color=C.blue})=>(
-  <span style={{background:color+"22",color,border:"1px solid "+color+"44",
-    borderRadius:4,padding:"2px 8px",fontSize:11,fontFamily:"monospace",
-    letterSpacing:1,fontWeight:700}}>{children}</span>
-);
+function Tag({children,color=C.blue}){
+  return html`<span style=${{background:color+"22",color,border:"1px solid "+color+"44",borderRadius:4,padding:"2px 8px",fontSize:11,letterSpacing:1,fontWeight:700}}>${children}</span>`;
+}
 
-const KPI=({label,value,sub,color=C.gold})=>(
-  <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,
-    padding:"18px 20px",flex:1,minWidth:130}}>
-    <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>{label}</div>
-    <div style={{fontSize:26,fontWeight:800,color,fontFamily:"monospace",lineHeight:1}}>{value}</div>
-    {sub&&<div style={{fontSize:11,color:C.muted,marginTop:5}}>{sub}</div>}
-  </div>
-);
+function TTip({active,payload,label}){
+  if(!active||!payload||!payload.length)return null;
+  return html`<div style=${{background:C.surface,border:"1px solid "+C.cardBorder,borderRadius:8,padding:"10px 14px",fontSize:12,color:C.text}}>
+    <div style=${{color:C.muted,marginBottom:4}}>${label}</div>
+    ${payload.map((p,i)=>html`<div key=${i} style=${{color:p.color||C.gold}}>${p.name}: <strong>${typeof p.value==="number"?(p.value>0?"+":"")+p.value.toFixed(2):p.value}</strong></div>`)}
+  </div>`;
+}
 
-const TTip=({active,payload,label})=>{
-  if(!active||!payload||!payload.length) return null;
-  return(
-    <div style={{background:C.surface,border:"1px solid "+C.cardBorder,borderRadius:8,padding:"10px 14px",fontSize:12,color:C.text}}>
-      <div style={{color:C.muted,marginBottom:4}}>{label}</div>
-      {payload.map((p,i)=>(
-        <div key={i} style={{color:p.color||C.gold}}>
-          {p.name}: <strong>{typeof p.value==="number"?(p.value>0?"+":"")+p.value.toFixed(2):p.value}</strong>
+function Modal({trade,onClose}){
+  return html`<div onClick=${onClose} style=${{position:"fixed",inset:0,background:"#000b",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div onClick=${e=>e.stopPropagation()} style=${{background:C.surface,border:"1px solid "+C.cardBorder,borderRadius:14,padding:24,width:460,maxWidth:"94vw",maxHeight:"88vh",overflow:"auto"}}>
+      <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <div style=${{display:"flex",gap:8,alignItems:"center"}}>
+          <div style=${{width:9,height:9,borderRadius:"50%",background:trade.result==="WIN"?C.green:C.red}}/>
+          <span style=${{fontSize:15,fontWeight:800,color:C.text}}>Trade #${trade.id}</span>
+          <${Tag} color=${trade.result==="WIN"?C.green:C.red}>${trade.result}</${Tag}>
+          <${Tag} color=${trade.direction==="CALL"?C.cyan:C.purple}>${trade.direction}</${Tag}>
         </div>
-      ))}
+        <button onClick=${onClose} style=${{background:"none",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>×</button>
+      </div>
+      <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        ${[["Open Time",trade.openTime&&trade.openTime.slice(0,16)],["Asset",trade.asset],
+          ["Entry",(trade.openPrice||0).toFixed(5)],["Exit",(trade.closePrice||0).toFixed(5)],
+          ["Stake","$"+(trade.stake||0).toFixed(2)],["P&L",fmtMoney(trade.payout||0)],
+          ["Payout",((trade.payoutPct||0)*100).toFixed(1)+"%"],["Mode",trade.autoTrade?"Auto":"Manual"]
+        ].map(([l,v])=>html`<div key=${l} style=${{background:C.card,borderRadius:8,padding:"10px 14px",border:"1px solid "+C.cardBorder}}>
+          <div style=${{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase"}}>${l}</div>
+          <div style=${{fontSize:13,color:C.text,fontWeight:700,marginTop:3}}>${v||"—"}</div>
+        </div>`)}
+      </div>
+      <div style=${{background:C.card,borderRadius:10,padding:14,border:"1px solid "+C.cardBorder}}>
+        <div style=${{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Price Movement</div>
+        <div style=${{display:"flex",alignItems:"center",gap:12}}>
+          <div style=${{textAlign:"center"}}>
+            <div style=${{fontSize:9,color:C.muted}}>ENTRY</div>
+            <div style=${{fontSize:15,fontWeight:800,color:C.cyan,fontFamily:"monospace"}}>${(trade.openPrice||0).toFixed(5)}</div>
+          </div>
+          <div style=${{flex:1,height:2,background:trade.payout>0?C.green:C.red,borderRadius:1}}/>
+          <div style=${{textAlign:"center"}}>
+            <div style=${{fontSize:9,color:C.muted}}>EXIT</div>
+            <div style=${{fontSize:15,fontWeight:800,color:trade.payout>0?C.green:C.red,fontFamily:"monospace"}}>${(trade.closePrice||0).toFixed(5)}</div>
+          </div>
+        </div>
+      </div>
     </div>
-  );
-};
+  </div>`;
+}
 
-function POTrader(){
-  const [trades,setTrades]=useState(REAL_TRADES);
+function App(){
+  const [trades,setTrades]=useState(SEED);
   const [view,setView]=useState("dashboard");
-  const [selectedTrade,setSelectedTrade]=useState(null);
-  const [selectedDay,setSelectedDay]=useState(null);
-  const [filterResult,setFilterResult]=useState("All");
-  const [uploadMsg,setUploadMsg]=useState("");
-  const fileRef=useRef();
+  const [sel,setSel]=useState(null);
+  const [filter,setFilter]=useState("All");
+  const [msg,setMsg]=useState("");
+  const fRef=useRef();
 
-  const handleFile=(e)=>{
-    const file=e.target.files[0];
-    if(!file) return;
-    parsePOXlsx(file,(parsed)=>{
-      const existingIds=new Set(trades.map(t=>t.orderId).filter(Boolean));
-      const newT=parsed.filter(t=>!existingIds.has(t.orderId));
+  const upload=e=>{
+    const f=e.target.files[0]; if(!f)return;
+    parsePOXlsx(f,parsed=>{
+      const ids=new Set(trades.map(t=>t.orderId).filter(Boolean));
+      const newT=parsed.filter(t=>!ids.has(t.orderId));
       const maxId=trades.reduce((m,t)=>Math.max(m,t.id),0);
-      const merged=[...trades,...newT.map((t,i)=>({...t,id:maxId+i+1}))];
-      merged.sort((a,b)=>a.openTime.localeCompare(b.openTime));
-      setTrades(addCumPL(merged));
-      setUploadMsg("+"+newT.length+" new, "+(parsed.length-newT.length)+" skipped");
-      setTimeout(()=>setUploadMsg(""),4000);
+      const merged=addCumPL([...trades,...newT.map((t,i)=>({...t,id:maxId+i+1}))].sort((a,b)=>a.openTime.localeCompare(b.openTime)));
+      setTrades(merged);
+      setMsg("+"+newT.length+" new, "+(parsed.length-newT.length)+" skipped");
+      setTimeout(()=>setMsg(""),4000);
     });
     e.target.value="";
   };
 
-  const filtered=useMemo(()=>trades.filter(t=>filterResult==="All"||t.result===filterResult),[trades,filterResult]);
+  const ft=useMemo(()=>trades.filter(t=>filter==="All"||t.result===filter),[trades,filter]);
 
   const stats=useMemo(()=>{
-    const wins=filtered.filter(t=>t.result==="WIN");
-    const totalPL=filtered.reduce((s,t)=>+(s+t.payout).toFixed(2),0);
-    const calls=filtered.filter(t=>t.direction==="CALL");
-    const puts=filtered.filter(t=>t.direction==="PUT");
-    return{
-      wins:wins.length,losses:filtered.length-wins.length,total:filtered.length,totalPL,
-      winRate:filtered.length?wins.length/filtered.length:0,
+    const w=ft.filter(t=>t.result==="WIN");
+    const pl=ft.reduce((s,t)=>+(s+t.payout).toFixed(2),0);
+    const calls=ft.filter(t=>t.direction==="CALL");
+    const puts=ft.filter(t=>t.direction==="PUT");
+    return{wins:w.length,losses:ft.length-w.length,total:ft.length,pl,
+      wr:ft.length?w.length/ft.length:0,
       callWR:calls.length?calls.filter(t=>t.result==="WIN").length/calls.length:0,
-      putWR:puts.length?puts.filter(t=>t.result==="WIN").length/puts.length:0,
-    };
-  },[filtered]);
+      putWR:puts.length?puts.filter(t=>t.result==="WIN").length/puts.length:0};
+  },[ft]);
 
-  const plCurve=useMemo(()=>{
-    let c=0;
-    return filtered.map((t,i)=>{c=+(c+t.payout).toFixed(2);return{i:i+1,pl:c};});
-  },[filtered]);
+  const curve=useMemo(()=>{let c=0;return ft.map((t,i)=>{c=+(c+t.payout).toFixed(2);return{i:i+1,pl:c};});},[ft]);
 
-  const heatmap=useMemo(()=>{
+  const hmap=useMemo(()=>{
     const h={};
-    filtered.forEach(t=>{
-      if(!h[t.hour])h[t.hour]={hour:fmtHour(t.hour),wins:0,losses:0,total:0};
-      h[t.hour][t.result==="WIN"?"wins":"losses"]++;
-      h[t.hour].total++;
-    });
-    return Object.values(h).map(x=>({...x,winRate:x.total?+(x.wins/x.total*100).toFixed(1):0}))
-      .sort((a,b)=>parseInt(a.hour)-parseInt(b.hour));
-  },[filtered]);
+    ft.forEach(t=>{if(!h[t.hour])h[t.hour]={hour:t.hour,wins:0,losses:0,total:0};h[t.hour][t.result==="WIN"?"wins":"losses"]++;h[t.hour].total++;});
+    return Object.values(h).map(x=>({...x,wr:x.total?+(x.wins/x.total*100).toFixed(1):0})).sort((a,b)=>a.hour-b.hour);
+  },[ft]);
 
-  const dailyBarData=useMemo(()=>{
-    const map={};
-    filtered.forEach(t=>{
-      const date=t.openTime?t.openTime.slice(0,10):"Unknown";
-      if(!map[date])map[date]={date,wins:0,losses:0,pl:0,total:0};
-      map[date][t.result==="WIN"?"wins":"losses"]++;
-      map[date].pl=+(map[date].pl+t.payout).toFixed(2);
-      map[date].total++;
-    });
-    return Object.values(map).sort((a,b)=>a.date.localeCompare(b.date)).map(d=>({...d,label:d.date.slice(5)}));
-  },[filtered]);
+  const daily=useMemo(()=>{
+    const m={};
+    ft.forEach(t=>{const d=t.openTime?t.openTime.slice(0,10):"?";if(!m[d])m[d]={date:d,wins:0,losses:0,pl:0,hours:{}};m[d][t.result==="WIN"?"wins":"losses"]++;m[d].pl+=t.payout;if(!m[d].hours[t.hour])m[d].hours[t.hour]={h:t.hour,wins:0,losses:0,pl:0};m[d].hours[t.hour][t.result==="WIN"?"wins":"losses"]++;m[d].hours[t.hour].pl+=t.payout;});
+    return Object.values(m).map(d=>{const hl=Object.values(d.hours).map(h=>({...h,total:h.wins+h.losses,wr:h.wins/(h.wins+h.losses),pl:+h.pl.toFixed(2)})).sort((a,b)=>a.h-b.h);const bh=hl.reduce((b,h)=>h.wr>(b?b.wr:0)?h:b,null);return{...d,total:d.wins+d.losses,wr:d.wins/(d.wins+d.losses),pl:+d.pl.toFixed(2),hl,bh};}).sort((a,b)=>b.date.localeCompare(a.date));
+  },[ft]);
 
-  const dailyBreakdown=useMemo(()=>{
-    const map={};
-    filtered.forEach(t=>{
-      const date=t.openTime?t.openTime.slice(0,10):"Unknown";
-      if(!map[date])map[date]={date,wins:0,losses:0,pl:0,hours:{}};
-      map[date][t.result==="WIN"?"wins":"losses"]++;
-      map[date].pl+=t.payout;
-      if(!map[date].hours[t.hour])map[date].hours[t.hour]={hour:fmtHour(t.hour),wins:0,losses:0,pl:0};
-      map[date].hours[t.hour][t.result==="WIN"?"wins":"losses"]++;
-      map[date].hours[t.hour].pl+=t.payout;
-    });
-    return Object.values(map).map(d=>{
-      const hl=Object.values(d.hours).map(h=>({...h,total:h.wins+h.losses,winRate:h.wins/(h.wins+h.losses),pl:+h.pl.toFixed(2)})).sort((a,b)=>parseInt(a.hour)-parseInt(b.hour));
-      const bh=hl.reduce((best,h)=>h.winRate>(best?best.winRate:0)?h:best,null);
-      return{...d,total:d.wins+d.losses,winRate:d.wins/(d.wins+d.losses),pl:+d.pl.toFixed(2),hoursList:hl,bestHour:bh};
-    }).sort((a,b)=>b.date.localeCompare(a.date));
-  },[filtered]);
+  // Best time window
+  const bestWindow=useMemo(()=>{
+    const hrs=Object.values(hmap.reduce((m,h)=>{m[h.hour]=h;return m},{}));
+    const qualified=hrs.filter(h=>h.wr>=50&&h.total>=2).map(h=>h.hour).sort((a,b)=>a-b);
+    if(!qualified.length)return null;
+    const runs=[];let run=[qualified[0]];
+    for(let i=1;i<qualified.length;i++){if(qualified[i]-qualified[i-1]<=2)run.push(qualified[i]);else{runs.push(run);run=[qualified[i]];}}
+    runs.push(run);
+    return runs.map(r=>{const rh=r.map(h=>hmap.find(x=>x.hour===h)).filter(Boolean);const avgWr=rh.reduce((s,h)=>s+h.wr,0)/rh.length;return{start:r[0],end:r[r.length-1]+1,avgWr,score:avgWr*r.length};}).sort((a,b)=>b.score-a.score)[0]||null;
+  },[hmap]);
 
-  const TradeModal=({trade,onClose})=>(
-    <div onClick={onClose} style={{position:"fixed",inset:0,background:"#000000bb",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,border:"1px solid "+C.cardBorder,borderRadius:14,padding:24,width:480,maxWidth:"94vw",maxHeight:"88vh",overflow:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:trade.result==="WIN"?C.green:C.red}}/>
-            <span style={{fontSize:15,fontWeight:800,color:C.text}}>Trade #{trade.id}</span>
-            <Tag color={trade.result==="WIN"?C.green:C.red}>{trade.result}</Tag>
-            <Tag color={trade.direction==="CALL"?C.cyan:C.purple}>{trade.direction}</Tag>
-          </div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:C.muted,fontSize:20,cursor:"pointer"}}>x</button>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
-          {[["Open Time",trade.openTime&&trade.openTime.slice(0,16)],["Asset",trade.asset],
-            ["Open Price",trade.openPrice&&trade.openPrice.toFixed(5)],["Close Price",trade.closePrice&&trade.closePrice.toFixed(5)],
-            ["Stake","$"+(trade.stake||0).toFixed(2)],["P&L",(trade.payout>=0?"+":"")+"$"+(trade.payout||0).toFixed(2)],
-            ["Payout",((trade.payoutPct||0)*100).toFixed(1)+"%"],["Mode",trade.autoTrade?"Auto":"Manual"],
-          ].map(([l,v])=>(
-            <div key={l} style={{background:C.card,borderRadius:8,padding:"10px 14px",border:"1px solid "+C.cardBorder}}>
-              <div style={{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase"}}>{l}</div>
-              <div style={{fontSize:13,color:C.text,fontWeight:700,marginTop:3}}>{v||"—"}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{background:C.card,borderRadius:10,padding:14,border:"1px solid "+C.cardBorder}}>
-          <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Price Movement</div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontSize:9,color:C.muted}}>ENTRY</div>
-              <div style={{fontSize:16,fontWeight:800,color:C.cyan,fontFamily:"monospace"}}>{(trade.openPrice||0).toFixed(5)}</div>
-            </div>
-            <div style={{flex:1,height:2,background:trade.payout>0?C.green:C.red,borderRadius:1}}/>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontSize:9,color:C.muted}}>EXIT</div>
-              <div style={{fontSize:16,fontWeight:800,color:trade.payout>0?C.green:C.red,fontFamily:"monospace"}}>{(trade.closePrice||0).toFixed(5)}</div>
-            </div>
-          </div>
-        </div>
+  const bestDay=useMemo(()=>daily.filter(d=>d.total>=3).sort((a,b)=>b.wr-a.wr)[0]||null,[daily]);
+
+  const wrC=v=>v>=0.6?C.green:v>=0.5?C.gold:C.red;
+
+  const navBtn=(id,label)=>html`<button onClick=${()=>setView(id)} style=${{background:view===id?C.blue+"22":"transparent",color:view===id?C.cyan:C.muted,border:"none",borderBottom:"2px solid "+(view===id?C.cyan:"transparent"),padding:"6px 18px",fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:1,textTransform:"uppercase"}}>${label}</button>`;
+
+  const today=new Date().toISOString().slice(0,10);
+  const todayT=ft.filter(t=>t.openTime&&t.openTime.startsWith(today));
+  const tw=todayT.filter(t=>t.result==="WIN").length;
+  const tl=todayT.filter(t=>t.result==="LOSS").length;
+  const tpl=+todayT.reduce((s,t)=>s+t.payout,0).toFixed(2);
+  const twr=todayT.length?tw/todayT.length:0;
+
+  return html`<div style=${{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:"monospace"}}>
+    <!-- Header -->
+    <div style=${{borderBottom:"1px solid "+C.cardBorder,padding:"0 20px",display:"flex",alignItems:"center",gap:16,height:52}}>
+      <div style=${{display:"flex",alignItems:"center",gap:8}}>
+        <div style=${{width:7,height:7,background:C.green,borderRadius:"50%",boxShadow:"0 0 7px "+C.green}}/>
+        <span style=${{fontSize:12,fontWeight:800,letterSpacing:3}}>PO TRADING</span>
+      </div>
+      <div style=${{flex:1,display:"flex",gap:2,justifyContent:"center"}}>
+        ${navBtn("dashboard","Overview")}
+        ${navBtn("today","Today")}
+        ${navBtn("trades","Trades")}
+      </div>
+      <div style=${{display:"flex",gap:8,alignItems:"center"}}>
+        <button onClick=${()=>fRef.current.click()} style=${{background:"none",color:C.muted,border:"1px solid "+C.cardBorder,borderRadius:6,padding:"5px 12px",fontSize:11,cursor:"pointer"}}>+ Upload</button>
+        <input ref=${fRef} type="file" accept=".xlsx,.xls" style=${{display:"none"}} onChange=${upload}/>
+        <span style=${{fontSize:11,color:C.muted}}>${trades.length} trades</span>
       </div>
     </div>
-  );
-
-  return(
-    <div style={{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:"monospace"}}>
-      <div style={{borderBottom:"1px solid "+C.cardBorder,padding:"0 20px",display:"flex",alignItems:"center",gap:16,height:52}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:7,height:7,background:C.green,borderRadius:"50%",boxShadow:"0 0 7px "+C.green}}/>
-          <span style={{fontSize:12,fontWeight:800,letterSpacing:3,color:C.text}}>PO TRADING</span>
-        </div>
-        <div style={{flex:1,display:"flex",gap:2,justifyContent:"center"}}>
-          {[["dashboard","Overview"],["today","Today"],["trades","Trades"]].map(([id,label])=>(
-            <button key={id} onClick={()=>setView(id)} style={{
-              background:view===id?C.blue+"22":"transparent",
-              color:view===id?C.cyan:C.muted,
-              border:"none",borderBottom:"2px solid "+(view===id?C.cyan:"transparent"),
-              padding:"6px 18px",fontSize:12,fontWeight:700,cursor:"pointer",
-              letterSpacing:1,textTransform:"uppercase"}}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>fileRef.current.click()} style={{background:"none",color:C.muted,border:"1px solid "+C.cardBorder,borderRadius:6,padding:"5px 12px",fontSize:11,cursor:"pointer"}}>
-            + Upload
-          </button>
-          <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{display:"none"}} onChange={handleFile}/>
-          <span style={{fontSize:11,color:C.muted}}>{trades.length} trades</span>
-        </div>
-      </div>
-      {uploadMsg&&<div style={{background:C.green+"22",borderBottom:"1px solid "+C.green+"33",padding:"7px 20px",fontSize:11,color:C.green,fontWeight:700}}>{uploadMsg}</div>}
-      <div style={{padding:"8px 20px",borderBottom:"1px solid "+C.faint,display:"flex",gap:8,alignItems:"center"}}>
-        {["All","WIN","LOSS"].map(r=>(
-          <button key={r} onClick={()=>setFilterResult(r)} style={{
-            background:filterResult===r?(r==="WIN"?C.green+"22":r==="LOSS"?C.red+"22":C.blue+"22"):"transparent",
-            color:filterResult===r?(r==="WIN"?C.green:r==="LOSS"?C.red:C.cyan):C.muted,
-            border:"1px solid "+(filterResult===r?(r==="WIN"?C.green+"44":r==="LOSS"?C.red+"44":C.blue+"44"):"transparent"),
-            borderRadius:20,padding:"3px 14px",fontSize:11,cursor:"pointer",fontWeight:700}}>
-            {r}
-          </button>
-        ))}
-        <span style={{fontSize:10,color:C.muted,marginLeft:4}}>{filtered.length} trades</span>
-      </div>
-      <div style={{padding:16}}>
-
-        {view==="dashboard"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"20px 24px"}}>
-              <div style={{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Trades</div>
-              <div style={{display:"flex",alignItems:"baseline",gap:12}}>
-                <span style={{fontSize:36,fontWeight:800,color:C.green,fontFamily:"monospace"}}>{stats.wins+"W"}</span>
-                <span style={{fontSize:28,fontWeight:300,color:C.muted}}>/</span>
-                <span style={{fontSize:36,fontWeight:800,color:C.red,fontFamily:"monospace"}}>{stats.losses+"L"}</span>
-              </div>
-              <div style={{fontSize:11,color:C.muted,marginTop:6}}>{stats.total+" total  ·  "+(stats.winRate*100).toFixed(1)+"% win rate"}</div>
-            </div>
-            <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:20}}>
-              <div style={{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:14}}>Cumulative P&L</div>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={plCurve}>
-                  <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C.green} stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor={C.green} stopOpacity={0}/>
-                  </linearGradient></defs>
-                  <CartesianGrid stroke={C.faint} strokeDasharray="3 3"/>
-                  <XAxis dataKey="i" tick={{fill:C.muted,fontSize:10}}/>
-                  <YAxis tick={{fill:C.muted,fontSize:10}} tickFormatter={v=>"$"+v}/>
-                  <Tooltip content={<TTip/>}/>
-                  <ReferenceLine y={0} stroke={C.red} strokeDasharray="4 4" strokeOpacity={0.7}/>
-                  <Area type="monotone" dataKey="pl" stroke={C.green} fill="url(#g1)" strokeWidth={2.5} name="Cum P&L" dot={false}/>
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
-                <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Win Rate</div>
-                <div style={{fontSize:28,fontWeight:800,color:stats.winRate>=0.6?C.green:stats.winRate>=0.5?C.gold:C.red,fontFamily:"monospace"}}>{(stats.winRate*100).toFixed(1)+"%"}</div>
-                <div style={{fontSize:10,color:C.muted,marginTop:4}}>{stats.winRate>=0.6?"Above 60% target":"Below 60% target"}</div>
-                <div style={{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
-                  <div style={{width:(stats.winRate*100)+"%",height:"100%",background:stats.winRate>=0.6?C.green:stats.winRate>=0.5?C.gold:C.red}}/>
-                </div>
-              </div>
-              <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
-                <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Total P&L</div>
-                <div style={{fontSize:28,fontWeight:800,color:stats.totalPL>=0?C.green:C.red,fontFamily:"monospace"}}>{(stats.totalPL>=0?"+":"")+"$"+stats.totalPL.toFixed(2)}</div>
-                <div style={{fontSize:10,color:C.muted,marginTop:4}}>All sessions combined</div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {[["CALL",C.cyan],["PUT",C.purple]].map(([dir,col])=>{
-                const group=filtered.filter(t=>t.direction===dir);
-                const w=group.filter(t=>t.result==="WIN").length;
-                const wr=group.length?w/group.length:0;
-                return(
-                  <div key={dir} style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16,borderTop:"3px solid "+col}}>
-                    <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{dir}</div>
-                    <div style={{fontSize:24,fontWeight:800,color:wr>=0.6?C.green:wr>=0.5?C.gold:C.red,fontFamily:"monospace"}}>{(wr*100).toFixed(1)+"%"}</div>
-                    <div style={{fontSize:11,color:C.muted,marginTop:4}}>{w+"W / "+(group.length-w)+"L"}</div>
-                    <div style={{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
-                      <div style={{width:(wr*100)+"%",height:"100%",background:wr>=0.6?C.green:wr>=0.5?C.gold:C.red}}/>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {(()=>{
-              const dayMap={};
-              filtered.forEach(t=>{
-                const date=t.openTime?t.openTime.slice(0,10):"";
-                if(!date) return;
-                if(!dayMap[date])dayMap[date]={date,wins:0,losses:0,pl:0};
-                dayMap[date][t.result==="WIN"?"wins":"losses"]++;
-                dayMap[date].pl=+(dayMap[date].pl+t.payout).toFixed(2);
-              });
-              const days=Object.values(dayMap).map(d=>({...d,total:d.wins+d.losses,wr:d.wins/(d.wins+d.losses)})).filter(d=>d.total>=3).sort((a,b)=>b.wr-a.wr);
-              const bestDay=days[0]||null;
-              const hourMap={};
-              filtered.forEach(t=>{
-                if(!hourMap[t.hour])hourMap[t.hour]={hour:t.hour,wins:0,losses:0,pl:0};
-                hourMap[t.hour][t.result==="WIN"?"wins":"losses"]++;
-                hourMap[t.hour].pl=+(hourMap[t.hour].pl+t.payout).toFixed(2);
-              });
-              const hours=Object.values(hourMap).map(h=>({...h,total:h.wins+h.losses,wr:h.wins/(h.wins+h.losses)})).filter(h=>h.total>=3).sort((a,b)=>b.wr-a.wr);
-              const qualified=hours.filter(h=>h.wr>=0.5).map(h=>h.hour).sort((a,b)=>a-b);
-              const runs=[];
-              if(qualified.length){let run=[qualified[0]];for(let i=1;i<qualified.length;i++){if(qualified[i]-qualified[i-1]<=2)run.push(qualified[i]);else{runs.push(run);run=[qualified[i]];}}runs.push(run);}
-              const scored=runs.map(r=>{const rh=r.map(h=>hours.find(x=>x.hour===h)).filter(Boolean);const avgWr=rh.reduce((s,h)=>s+h.wr,0)/rh.length;const totalPl=+rh.reduce((s,h)=>s+h.pl,0).toFixed(2);const totalW=rh.reduce((s,h)=>s+h.wins,0);const totalL=rh.reduce((s,h)=>s+h.losses,0);return{start:r[0],end:r[r.length-1]+1,avgWr,totalPl,totalW,totalL,score:avgWr*r.length};}).sort((a,b)=>b.score-a.score);
-              const bestWindow=scored[0]||null;
-              return(
-                <div style={{background:C.card,border:"1px solid "+C.gold+"44",borderRadius:12,padding:16}}>
-                  <div style={{fontSize:10,color:C.gold,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>All-Time Best</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    <div style={{background:C.faint,borderRadius:10,padding:"14px 16px"}}>
-                      <div style={{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Best Day</div>
-                      {bestDay?(<>
-                        <div style={{fontSize:18,fontWeight:800,color:C.gold,fontFamily:"monospace"}}>{new Date(bestDay.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</div>
-                        <div style={{fontSize:22,fontWeight:800,color:C.green,marginTop:4}}>{(bestDay.wr*100).toFixed(0)+"%"}</div>
-                        <div style={{fontSize:10,color:C.muted,marginTop:4}}>{bestDay.wins+"W / "+bestDay.losses+"L"}</div>
-                        <div style={{fontSize:11,color:bestDay.pl>=0?C.green:C.red,fontWeight:700,marginTop:2}}>{(bestDay.pl>=0?"+":"")+"$"+bestDay.pl}</div>
-                      </>):(<div style={{fontSize:11,color:C.muted}}>Need 3+ trades/day</div>)}
-                    </div>
-                    <div style={{background:C.faint,borderRadius:10,padding:"14px 16px"}}>
-                      <div style={{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Best Time Window</div>
-                      {bestWindow?(<>
-                        <div style={{fontSize:18,fontWeight:800,color:C.gold,fontFamily:"monospace"}}>{fmtHour(bestWindow.start)+" – "+fmtHour(bestWindow.end)}</div>
-                        <div style={{fontSize:22,fontWeight:800,color:C.green,marginTop:4}}>{(bestWindow.avgWr*100).toFixed(0)+"% avg"}</div>
-                        <div style={{fontSize:10,color:C.muted,marginTop:4}}>{bestWindow.totalW+"W / "+bestWindow.totalL+"L"}</div>
-                        <div style={{fontSize:11,color:bestWindow.totalPl>=0?C.green:C.red,fontWeight:700,marginTop:2}}>{(bestWindow.totalPl>=0?"+":"")+"$"+bestWindow.totalPl}</div>
-                      </>):(<div style={{fontSize:11,color:C.muted}}>Not enough data yet</div>)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {view==="today"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {(()=>{
-              const today=new Date().toISOString().slice(0,10);
-              const todayTrades=filtered.filter(t=>t.openTime&&t.openTime.startsWith(today));
-              const tw=todayTrades.filter(t=>t.result==="WIN").length;
-              const tl=todayTrades.filter(t=>t.result==="LOSS").length;
-              const tpl=+todayTrades.reduce((s,t)=>s+t.payout,0).toFixed(2);
-              const twr=todayTrades.length?tw/todayTrades.length:0;
-              if(todayTrades.length===0) return(
-                <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"40px 24px",textAlign:"center"}}>
-                  <div style={{fontSize:32,marginBottom:12}}>📭</div>
-                  <div style={{fontSize:14,color:C.muted}}>No trades yet today</div>
-                  <div style={{fontSize:11,color:C.muted,marginTop:6}}>Upload today's XLSX to see results</div>
-                </div>
-              );
-              const byHour={};
-              todayTrades.forEach(t=>{
-                if(!byHour[t.hour])byHour[t.hour]={hour:t.hour,wins:0,losses:0,pl:0};
-                byHour[t.hour][t.result==="WIN"?"wins":"losses"]++;
-                byHour[t.hour].pl=+(byHour[t.hour].pl+t.payout).toFixed(2);
-              });
-              const hours=Object.values(byHour).map(h=>({...h,total:h.wins+h.losses,wr:h.wins/(h.wins+h.losses),wrPct:+(h.wins/(h.wins+h.losses)*100).toFixed(1)})).sort((a,b)=>parseInt(a.hour)-parseInt(b.hour));
-              const best=hours.reduce((b,h)=>h.wr>(b?b.wr:0)?h:b,null);
-              const qualified=hours.filter(h=>h.wr>=0.5&&h.total>=1).map(h=>h.hour).sort((a,b)=>a-b);
-              const runs=[];if(qualified.length){let run=[qualified[0]];for(let i=1;i<qualified.length;i++){if(qualified[i]-qualified[i-1]<=2)run.push(qualified[i]);else{runs.push(run);run=[qualified[i]];}}runs.push(run);}
-              const scored=runs.map(r=>{const rh=r.map(h=>hours.find(x=>x.hour===h)).filter(Boolean);const avgWr=rh.reduce((s,h)=>s+h.wr,0)/rh.length;const totalPl=+rh.reduce((s,h)=>s+h.pl,0).toFixed(2);const totalW=rh.reduce((s,h)=>s+h.wins,0);const totalL=rh.reduce((s,h)=>s+h.losses,0);return{start:r[0],end:r[r.length-1]+1,avgWr,totalPl,totalW,totalL,score:avgWr*r.length};}).sort((a,b)=>b.score-a.score);
-              const bestWin=scored[0]||null;
-              const worstHour=hours.filter(h=>h.total>=1).sort((a,b)=>a.wr-b.wr)[0]||null;
-              return(<>
-                <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"20px 24px"}}>
-                  <div style={{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Today · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
-                  <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
-                    <span style={{fontSize:36,fontWeight:800,color:C.green,fontFamily:"monospace"}}>{tw+"W"}</span>
-                    <span style={{fontSize:28,fontWeight:300,color:C.muted}}>/</span>
-                    <span style={{fontSize:36,fontWeight:800,color:C.red,fontFamily:"monospace"}}>{tl+"L"}</span>
-                  </div>
-                  <div style={{fontSize:11,color:C.muted}}>{todayTrades.length+" trades  ·  "+(twr*100).toFixed(1)+"% win rate"}</div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
-                    <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Today P&L</div>
-                    <div style={{fontSize:28,fontWeight:800,color:tpl>=0?C.green:C.red,fontFamily:"monospace"}}>{(tpl>=0?"+":"")+"$"+tpl.toFixed(2)}</div>
-                  </div>
-                  <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
-                    <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Win Rate</div>
-                    <div style={{fontSize:28,fontWeight:800,color:twr>=0.6?C.green:twr>=0.5?C.gold:C.red,fontFamily:"monospace"}}>{(twr*100).toFixed(1)+"%"}</div>
-                    <div style={{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
-                      <div style={{width:(twr*100)+"%",height:"100%",background:twr>=0.6?C.green:twr>=0.5?C.gold:C.red}}/>
-                    </div>
-                  </div>
-                </div>
-                <div style={{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
-                  <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Win Rate by Hour</div>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={hours} barCategoryGap="20%">
-                      <CartesianGrid stroke={C.faint} strokeDasharray="3 3" vertical={false}/>
-                      <XAxis dataKey={d=>fmtHour(d.hour)} tick={{fill:C.muted,fontSize:9}} axisLine={false} tickLine={false}/>
-                      <YAxis tick={{fill:C.muted,fontSize:9}} domain={[0,100]} unit="%" axisLine={false} tickLine={false}/>
-                      <Tooltip content={({active,payload})=>{if(!active||!payload||!payload.length)return null;const d=payload[0].payload;return(<div style={{background:C.surface,border:"1px solid "+C.cardBorder,borderRadius:8,padding:"10px 14px",fontSize:12}}><div style={{color:C.gold,fontWeight:700,marginBottom:4}}>{fmtHour(d.hour)}</div><div style={{color:d.wr>=0.6?C.green:d.wr>=0.5?C.gold:C.red,fontWeight:800,fontSize:16}}>{d.wrPct+"%"}</div><div style={{color:C.muted,fontSize:11,marginTop:4}}>{d.wins+"W / "+d.losses+"L"}</div><div style={{color:d.pl>=0?C.green:C.red,fontWeight:700,marginTop:2}}>{(d.pl>=0?"+":"")+"$"+d.pl}</div></div>);}}/>
-                      <ReferenceLine y={60} stroke={C.gold} strokeDasharray="4 4" strokeOpacity={0.6}/>
-                      <Bar dataKey="wrPct" name="Win Rate %" radius={[5,5,0,0]} maxBarSize={36}>
-                        {hours.map((h,i)=>{const isBest=best&&best.hour===h.hour;return <Cell key={i} fill={isBest?C.gold:h.wr>=0.6?C.green:h.wr>=0.5?C.cyan:C.red} fillOpacity={0.9}/>;} )}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div style={{background:C.card,border:"1px solid "+C.gold+"44",borderRadius:12,padding:20}}>
-                  <div style={{fontSize:10,color:C.gold,letterSpacing:2,textTransform:"uppercase",marginBottom:16}}>Best Time to Trade Today</div>
-                  {bestWin?(<>
-                    <div style={{fontSize:38,fontWeight:800,color:C.gold,fontFamily:"monospace",lineHeight:1,marginBottom:6}}>{fmtHour(bestWin.start)+" – "+fmtHour(bestWin.end)}</div>
-                    <div style={{fontSize:26,fontWeight:800,color:bestWin.avgWr>=0.6?C.green:C.gold,marginBottom:8}}>{(bestWin.avgWr*100).toFixed(0)+"% avg win rate"}</div>
-                    <div style={{fontSize:12,color:C.muted,marginBottom:4}}>{bestWin.totalW+"W / "+bestWin.totalL+"L  ·  "+(bestWin.totalPl>=0?"+":"")+"$"+bestWin.totalPl}</div>
-                    <div style={{background:C.faint,borderRadius:3,height:5,marginTop:12,overflow:"hidden"}}>
-                      <div style={{width:(bestWin.avgWr*100)+"%",height:"100%",background:bestWin.avgWr>=0.6?C.green:C.gold,borderRadius:3}}/>
-                    </div>
-                    {worstHour&&worstHour.wr<0.4&&(<div style={{marginTop:14,padding:"8px 12px",background:C.red+"10",border:"1px solid "+C.red+"33",borderRadius:8,fontSize:11,color:C.muted}}>{"Avoid: "}<span style={{color:C.red,fontWeight:700}}>{fmtHour(worstHour.hour)}</span>{" — "+Math.round(worstHour.wr*100)+"% win rate today"}</div>)}
-                  </>):(<div style={{fontSize:12,color:C.muted}}>Not enough data yet for today</div>)}
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Today's Trades</div>
-                  {todayTrades.slice().reverse().map(t=>(
-                    <div key={t.id} style={{display:"grid",gridTemplateColumns:"50px 55px 70px 1fr 55px 65px",gap:8,padding:"10px 14px",background:C.card,border:"1px solid "+C.cardBorder,borderLeft:"3px solid "+(t.result==="WIN"?C.green:C.red),borderRadius:8,alignItems:"center",fontSize:11}}>
-                      <div style={{color:C.muted,fontSize:10}}>{t.openTime&&t.openTime.slice(11,16)}</div>
-                      <Tag color={t.result==="WIN"?C.green:C.red}>{t.result}</Tag>
-                      <Tag color={t.direction==="CALL"?C.cyan:C.purple}>{t.direction}</Tag>
-                      <div style={{color:C.muted,fontSize:10}}>{"$"+(t.stake||0).toFixed(0)+" stake"}</div>
-                      <div style={{color:t.payout>=0?C.green:C.red,fontWeight:700,fontSize:11,textAlign:"right"}}>{(t.payout>=0?"+":"")+"$"+Math.abs(t.payout).toFixed(0)}</div>
-                      <div style={{fontSize:10,color:C.muted,textAlign:"right"}}>{t.openPrice&&t.openPrice.toFixed(5)}</div>
-                    </div>
-                  ))}
-                </div>
-              </>);
-            })()}
-          </div>
-        )}
-
-        {view==="trades"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <div style={{display:"grid",gridTemplateColumns:"40px 60px 130px 90px 60px 70px 70px 50px",gap:8,padding:"6px 12px",fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase"}}>
-              {["#","Result","Time","Asset","Dir","Stake","P&L",""].map(h=><div key={h}>{h}</div>)}
-            </div>
-            {filtered.slice().reverse().map(t=>(
-              <div key={t.id} onClick={()=>setSelectedTrade(t)} style={{display:"grid",gridTemplateColumns:"40px 60px 130px 90px 60px 70px 70px 50px",gap:8,padding:"10px 12px",background:C.card,border:"1px solid "+C.cardBorder,borderLeft:"3px solid "+(t.result==="WIN"?C.green:C.red),borderRadius:8,alignItems:"center",fontSize:11,cursor:"pointer"}}>
-                <div style={{color:C.muted,fontSize:10}}>{"#"+t.id}</div>
-                <Tag color={t.result==="WIN"?C.green:C.red}>{t.result}</Tag>
-                <div style={{color:C.muted,fontSize:10}}>{t.openTime&&t.openTime.slice(0,16)}</div>
-                <div style={{color:C.gold,fontWeight:700,fontSize:10}}>{t.asset}</div>
-                <Tag color={t.direction==="CALL"?C.cyan:C.purple}>{t.direction}</Tag>
-                <div style={{color:C.text,fontSize:10}}>{"$"+(t.stake||0).toFixed(0)}</div>
-                <div style={{color:t.payout>=0?C.green:C.red,fontWeight:700,fontSize:10}}>{(t.payout>=0?"+":"")+"$"+Math.abs(t.payout||0).toFixed(0)}</div>
-                <div style={{color:C.blue,fontSize:10}}>→</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      {selectedTrade&&<TradeModal trade={selectedTrade} onClose={()=>setSelectedTrade(null)}/>}
+    ${msg&&html`<div style=${{background:C.green+"22",borderBottom:"1px solid "+C.green+"33",padding:"7px 20px",fontSize:11,color:C.green,fontWeight:700}}>${msg}</div>`}
+    <!-- Filter -->
+    <div style=${{padding:"8px 20px",borderBottom:"1px solid "+C.faint,display:"flex",gap:8,alignItems:"center"}}>
+      ${["All","WIN","LOSS"].map(r=>html`<button key=${r} onClick=${()=>setFilter(r)} style=${{background:filter===r?(r==="WIN"?C.green+"22":r==="LOSS"?C.red+"22":C.blue+"22"):"transparent",color:filter===r?(r==="WIN"?C.green:r==="LOSS"?C.red:C.cyan):C.muted,border:"1px solid "+(filter===r?(r==="WIN"?C.green+"44":r==="LOSS"?C.red+"44":C.blue+"44"):"transparent"),borderRadius:20,padding:"3px 14px",fontSize:11,cursor:"pointer",fontWeight:700}}>${r}</button>`)}
+      <span style=${{fontSize:10,color:C.muted,marginLeft:4}}>${ft.length} trades</span>
     </div>
-  );
+
+    <div style=${{padding:16}}>
+
+    <!-- OVERVIEW -->
+    ${view==="dashboard"&&html`<div style=${{display:"flex",flexDirection:"column",gap:14}}>
+      <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"20px 24px"}}>
+        <div style=${{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Trades</div>
+        <div style=${{display:"flex",alignItems:"baseline",gap:12}}>
+          <span style=${{fontSize:36,fontWeight:800,color:C.green,fontFamily:"monospace"}}>${stats.wins}W</span>
+          <span style=${{fontSize:28,fontWeight:300,color:C.muted}}>/</span>
+          <span style=${{fontSize:36,fontWeight:800,color:C.red,fontFamily:"monospace"}}>${stats.losses}L</span>
+        </div>
+        <div style=${{fontSize:11,color:C.muted,marginTop:6}}>${stats.total} total · ${(stats.wr*100).toFixed(1)}% win rate</div>
+      </div>
+      <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:20}}>
+        <div style=${{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:14}}>Cumulative P&L</div>
+        <${ResponsiveContainer} width="100%" height=${200}>
+          <${AreaChart} data=${curve}>
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor=${C.green} stopOpacity=${0.2}/>
+              <stop offset="95%" stopColor=${C.green} stopOpacity=${0}/>
+            </linearGradient></defs>
+            <${CartesianGrid} stroke=${C.faint} strokeDasharray="3 3"/>
+            <${XAxis} dataKey="i" tick=${{fill:C.muted,fontSize:10}}/>
+            <${YAxis} tick=${{fill:C.muted,fontSize:10}} tickFormatter=${v=>"$"+v}/>
+            <${Tooltip} content=${h(TTip,{})}/>
+            <${ReferenceLine} y=${0} stroke=${C.red} strokeDasharray="4 4" strokeOpacity=${0.7}/>
+            <${Area} type="monotone" dataKey="pl" stroke=${C.green} fill="url(#g1)" strokeWidth=${2.5} name="Cum P&L" dot=${false}/>
+          </${AreaChart}>
+        </${ResponsiveContainer}>
+      </div>
+      <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
+          <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Win Rate</div>
+          <div style=${{fontSize:28,fontWeight:800,color:wrC(stats.wr),fontFamily:"monospace"}}>${(stats.wr*100).toFixed(1)}%</div>
+          <div style=${{fontSize:10,color:C.muted,marginTop:4}}>${stats.wr>=0.6?"Above 60% target":"Below 60% target"}</div>
+          <div style=${{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
+            <div style=${{width:(stats.wr*100)+"%",height:"100%",background:wrC(stats.wr)}}/>
+          </div>
+        </div>
+        <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
+          <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Total P&L</div>
+          <div style=${{fontSize:28,fontWeight:800,color:stats.pl>=0?C.green:C.red,fontFamily:"monospace"}}>${fmtMoney(stats.pl)}</div>
+          <div style=${{fontSize:10,color:C.muted,marginTop:4}}>All sessions combined</div>
+        </div>
+      </div>
+      <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        ${[["CALL",C.cyan,stats.callWR],["PUT",C.purple,stats.putWR]].map(([dir,col,wr])=>html`
+          <div key=${dir} style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16,borderTop:"3px solid "+col}}>
+            <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>${dir}</div>
+            <div style=${{fontSize:24,fontWeight:800,color:wrC(wr),fontFamily:"monospace"}}>${(wr*100).toFixed(1)}%</div>
+            <div style=${{fontSize:11,color:C.muted,marginTop:4}}>${ft.filter(t=>t.direction===dir&&t.result==="WIN").length}W / ${ft.filter(t=>t.direction===dir&&t.result==="LOSS").length}L</div>
+            <div style=${{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
+              <div style=${{width:(wr*100)+"%",height:"100%",background:wrC(wr)}}/>
+            </div>
+          </div>`)}
+      </div>
+      <div style=${{background:C.card,border:"1px solid "+C.gold+"44",borderRadius:12,padding:16}}>
+        <div style=${{fontSize:10,color:C.gold,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>⚡ All-Time Best</div>
+        <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style=${{background:C.faint,borderRadius:10,padding:"14px 16px"}}>
+            <div style=${{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Best Day</div>
+            ${bestDay?html`
+              <div style=${{fontSize:16,fontWeight:800,color:C.gold}}>${new Date(bestDay.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</div>
+              <div style=${{fontSize:22,fontWeight:800,color:C.green,marginTop:4}}>${(bestDay.wr*100).toFixed(0)}%</div>
+              <div style=${{fontSize:10,color:C.muted,marginTop:4}}>${bestDay.wins}W / ${bestDay.losses}L</div>
+              <div style=${{fontSize:11,color:bestDay.pl>=0?C.green:C.red,fontWeight:700,marginTop:2}}>${fmtMoney(bestDay.pl)}</div>
+            `:html`<div style=${{fontSize:11,color:C.muted}}>Need 3+ trades/day</div>`}
+          </div>
+          <div style=${{background:C.faint,borderRadius:10,padding:"14px 16px"}}>
+            <div style=${{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Best Window</div>
+            ${bestWindow?html`
+              <div style=${{fontSize:16,fontWeight:800,color:C.gold}}>${fmtHour(bestWindow.start)} – ${fmtHour(bestWindow.end)}</div>
+              <div style=${{fontSize:22,fontWeight:800,color:C.green,marginTop:4}}>${bestWindow.avgWr.toFixed(0)}% avg</div>
+            `:html`<div style=${{fontSize:11,color:C.muted}}>Not enough data</div>`}
+          </div>
+        </div>
+      </div>
+    </div>`}
+
+    <!-- TODAY -->
+    ${view==="today"&&html`<div style=${{display:"flex",flexDirection:"column",gap:14}}>
+      ${todayT.length===0?html`
+        <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"40px 24px",textAlign:"center"}}>
+          <div style=${{fontSize:32,marginBottom:12}}>📭</div>
+          <div style=${{fontSize:14,color:C.muted}}>No trades yet today</div>
+          <div style=${{fontSize:11,color:C.muted,marginTop:6}}>Upload today's XLSX to see results</div>
+        </div>
+      `:html`
+        <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:14,padding:"20px 24px"}}>
+          <div style=${{fontSize:10,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Today · ${new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
+          <div style=${{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
+            <span style=${{fontSize:36,fontWeight:800,color:C.green,fontFamily:"monospace"}}>${tw}W</span>
+            <span style=${{fontSize:28,fontWeight:300,color:C.muted}}>/</span>
+            <span style=${{fontSize:36,fontWeight:800,color:C.red,fontFamily:"monospace"}}>${tl}L</span>
+          </div>
+          <div style=${{fontSize:11,color:C.muted}}>${todayT.length} trades · ${(twr*100).toFixed(1)}% win rate</div>
+        </div>
+        <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
+            <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Today P&L</div>
+            <div style=${{fontSize:28,fontWeight:800,color:tpl>=0?C.green:C.red,fontFamily:"monospace"}}>${fmtMoney(tpl)}</div>
+          </div>
+          <div style=${{background:C.card,border:"1px solid "+C.cardBorder,borderRadius:12,padding:16}}>
+            <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Win Rate</div>
+            <div style=${{fontSize:28,fontWeight:800,color:wrC(twr),fontFamily:"monospace"}}>${(twr*100).toFixed(1)}%</div>
+            <div style=${{background:C.faint,borderRadius:3,height:4,marginTop:10,overflow:"hidden"}}>
+              <div style=${{width:(twr*100)+"%",height:"100%",background:wrC(twr)}}/>
+            </div>
+          </div>
+        </div>
+        <div style=${{display:"flex",flexDirection:"column",gap:6}}>
+          <div style=${{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Today's Trades</div>
+          ${[...todayT].reverse().map(t=>html`
+            <div key=${t.id} style=${{display:"grid",gridTemplateColumns:"50px 55px 70px 1fr 55px 65px",gap:8,padding:"10px 14px",background:C.card,border:"1px solid "+C.cardBorder,borderLeft:"3px solid "+(t.result==="WIN"?C.green:C.red),borderRadius:8,alignItems:"center",fontSize:11}}>
+              <div style=${{color:C.muted,fontSize:10}}>${t.openTime&&t.openTime.slice(11,16)}</div>
+              <${Tag} color=${t.result==="WIN"?C.green:C.red}>${t.result}</${Tag}>
+              <${Tag} color=${t.direction==="CALL"?C.cyan:C.purple}>${t.direction}</${Tag}>
+              <div style=${{color:C.muted,fontSize:10}}>$${(t.stake||0).toFixed(0)} stake</div>
+              <div style=${{color:t.payout>=0?C.green:C.red,fontWeight:700,textAlign:"right"}}>${fmtMoney(Math.abs(t.payout||0))}</div>
+              <div style=${{fontSize:10,color:C.muted,textAlign:"right"}}>${(t.openPrice||0).toFixed(5)}</div>
+            </div>`)}
+        </div>
+      `}
+    </div>`}
+
+    <!-- TRADES -->
+    ${view==="trades"&&html`<div style=${{display:"flex",flexDirection:"column",gap:6}}>
+      <div style=${{display:"grid",gridTemplateColumns:"40px 60px 130px 90px 60px 70px 70px 40px",gap:8,padding:"6px 12px",fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase"}}>
+        ${["#","Result","Time","Asset","Dir","Stake","P&L",""].map(h=>html`<div key=${h}>${h}</div>`)}
+      </div>
+      ${[...ft].reverse().map(t=>html`
+        <div key=${t.id} onClick=${()=>setSel(t)} style=${{display:"grid",gridTemplateColumns:"40px 60px 130px 90px 60px 70px 70px 40px",gap:8,padding:"10px 12px",background:C.card,border:"1px solid "+C.cardBorder,borderLeft:"3px solid "+(t.result==="WIN"?C.green:C.red),borderRadius:8,alignItems:"center",fontSize:11,cursor:"pointer"}}>
+          <div style=${{color:C.muted,fontSize:10}}>#${t.id}</div>
+          <${Tag} color=${t.result==="WIN"?C.green:C.red}>${t.result}</${Tag}>
+          <div style=${{color:C.muted,fontSize:10}}>${t.openTime&&t.openTime.slice(0,16)}</div>
+          <div style=${{color:C.gold,fontWeight:700,fontSize:10}}>${t.asset}</div>
+          <${Tag} color=${t.direction==="CALL"?C.cyan:C.purple}>${t.direction}</${Tag}>
+          <div style=${{color:C.text,fontSize:10}}>$${(t.stake||0).toFixed(0)}</div>
+          <div style=${{color:t.payout>=0?C.green:C.red,fontWeight:700,fontSize:10}}>${(t.payout>=0?"+":"")+"$"+Math.abs(t.payout||0).toFixed(0)}</div>
+          <div style=${{color:C.blue,fontSize:10}}>→</div>
+        </div>`)}
+    </div>`}
+
+    </div>
+    ${sel&&h(Modal,{trade:sel,onClose:()=>setSel(null)})}
+  </div>`;
 }
 
-const root=ReactDOM.createRoot(document.getElementById("root"));
-root.render(<POTrader/>);
+ReactDOM.createRoot(document.getElementById("root")).render(h(App,null));
 </script>
 </body>
 </html>
