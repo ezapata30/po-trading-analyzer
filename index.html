@@ -215,49 +215,123 @@ function closeModal(){document.getElementById("modal").style.display="none";}
 
 // ── Sparkline canvas chart ────────────────────────────────────────────────
 function drawCurve(canvasId, data, color){
+  // Daily bar chart
   const canvas=document.getElementById(canvasId);
   if(!canvas||!data.length)return;
   const ctx=canvas.getContext("2d");
   const W=canvas.width,H=canvas.height;
   ctx.clearRect(0,0,W,H);
   const vals=data.map(d=>d.pl);
-  const min=Math.min(...vals,0),max=Math.max(...vals,0);
-  const range=max-min||1;
-  const padL=70,padR=20,padT=16,padB=36;
-  const toX=i=>padL+(i/(data.length-1||1))*(W-padL-padR);
-  const toY=v=>padT+((max-v)/range)*(H-padT-padB);
+  const maxVal=Math.max(...vals,0);
+  const minVal=Math.min(...vals,0);
+  // Force zero as baseline — positive bars go up, negative go down
+  const aboveMax=maxVal||1;
+  const belowMin=Math.abs(minVal)||0;
+  const totalRange=aboveMax+belowMin||1;
+  const padL=72,padR=16,padT=20,padB=32;
+  const chartW=W-padL-padR;
+  const chartH=H-padT-padB;
+  const barW=Math.max(4,chartW/data.length*0.7);
+  const gap=chartW/data.length;
+  // Zero is always at fixed position: proportional to how much is below zero
+  const zeroY=padT+((aboveMax)/totalRange)*chartH;
+  const toY=v=>v>=0?zeroY-(v/totalRange)*chartH:zeroY+(Math.abs(v)/totalRange)*chartH;
 
-  // Y axis labels
-  ctx.fillStyle="#546E7A"; ctx.font="18px monospace"; ctx.textAlign="right";
-  const ySteps=4;
-  for(let s=0;s<=ySteps;s++){
-    const v=min+(range/ySteps)*s;
+  // Grid lines — show 0, max/2, max on positive; min/2, min on negative
+  ctx.font="22px monospace"; ctx.textAlign="right"; ctx.fillStyle="#546E7A";
+  const gridVals=[minVal, minVal/2, 0, maxVal/2, maxVal].filter(v=>v!==undefined);
+  gridVals.forEach(v=>{
     const y=toY(v);
-    ctx.fillText("$"+Math.round(v).toLocaleString(),padL-6,y+4);
-    ctx.strokeStyle="#1A253522"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    if(y<padT||y>H-padB) return;
+    const label=v<0?"$-"+Math.abs(Math.round(v)).toLocaleString():"$"+Math.round(v).toLocaleString();
+    ctx.fillText(label,padL-6,y+6);
+    ctx.strokeStyle="#1E2D4066"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Zero baseline — prominent
+  ctx.strokeStyle="#546E7ABB"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(padL,zeroY); ctx.lineTo(W-padR,zeroY); ctx.stroke();
+
+  // Bars
+  data.forEach((d,i)=>{
+    const x=padL+i*gap+(gap-barW)/2;
+    const barColor=d.pl>=0?"#00E676":"#FF1744";
+    const barTop=d.pl>=0?toY(d.pl):zeroY;
+    const barBot=d.pl>=0?zeroY:toY(d.pl);
+    const barH=Math.max(2,barBot-barTop);
+    // Bar fill
+    ctx.fillStyle=barColor+"CC";
+    ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(x,barTop,barW,barH,3):ctx.rect(x,barTop,barW,barH);
+    ctx.fill();
+    // Bar border
+    ctx.strokeStyle=barColor;ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(x,barTop,barW,barH,3):ctx.rect(x,barTop,barW,barH);
+    ctx.stroke();
+  });
+
+  // X axis dates
+  ctx.font="20px monospace"; ctx.textAlign="center"; ctx.fillStyle="#546E7A";
+  const step=Math.max(1,Math.floor(data.length/5));
+  data.forEach((d,i)=>{
+    if(i%step===0||i===data.length-1){
+      ctx.fillText(d.label,padL+i*gap+gap/2,H-6);
+    }
+  });
+  return; // skip old code below
+}
+function drawCurve_old(canvasId, data, color){ return;
+  const canvas=document.getElementById(canvasId);
+  if(!canvas||!data.length)return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const vals=data.map(d=>d.pl);
+  const maxVal=Math.max(...vals,0);
+  const minVal=Math.min(...vals,0);
+  const range=maxVal-minVal||1;
+  const padL=72,padR=16,padT=20,padB=32;
+
+  // toX: trade index → pixel X
+  const toX=i=>padL+(i/(data.length-1||1))*(W-padL-padR);
+  // toY: dollar value → pixel Y (top=max, bottom=min)
+  const toY=v=>padT+((maxVal-v)/range)*(H-padT-padB);
+
+  // Grid + Y axis labels (0 at bottom up to max at top)
+  ctx.font="22px monospace"; ctx.textAlign="right"; ctx.fillStyle="#546E7A";
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const v=minVal+(s/steps)*range;
+    const y=toY(v);
+    const label=v<0?"$-"+Math.abs(Math.round(v)).toLocaleString():"$"+Math.round(v).toLocaleString();
+    ctx.fillText(label,padL-6,y+6);
+    ctx.strokeStyle="#1E2D4088"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
   }
   ctx.setLineDash([]);
 
-  // X axis date labels — show ~5 evenly spaced dates
-  ctx.fillStyle="#546E7A"; ctx.font="18px monospace"; ctx.textAlign="center";
+  // X axis: show 5 evenly spaced dates
+  ctx.font="20px monospace"; ctx.textAlign="center"; ctx.fillStyle="#546E7A";
   const xCount=Math.min(5,data.length);
   for(let s=0;s<xCount;s++){
     const idx=Math.floor(s*(data.length-1)/(xCount-1||1));
-    const x=toX(idx);
-    const label=data[idx].date||"";
-    ctx.fillText(label,x,H-8);
+    ctx.fillText(data[idx].date||"",toX(idx),H-6);
   }
 
   // Zero line
-  const zy=toY(0);
-  ctx.strokeStyle="#FF174466"; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
-  ctx.beginPath(); ctx.moveTo(padL,zy); ctx.lineTo(W-padR,zy); ctx.stroke();
-  ctx.setLineDash([]);
+  if(minVal<0){
+    const zy=toY(0);
+    ctx.strokeStyle="#FF174488"; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(padL,zy); ctx.lineTo(W-padR,zy); ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
-  // Fill gradient
+  // Fill
   const grad=ctx.createLinearGradient(0,padT,0,H-padB);
-  grad.addColorStop(0,color+"44"); grad.addColorStop(1,color+"05");
+  grad.addColorStop(0,color+"55"); grad.addColorStop(1,color+"05");
   ctx.beginPath();
   ctx.moveTo(toX(0),toY(vals[0]));
   data.forEach((d,i)=>ctx.lineTo(toX(i),toY(d.pl)));
@@ -286,9 +360,14 @@ function render(){
   const callWR=calls.length?calls.filter(t=>t.result==="WIN").length/calls.length:0;
   const putWR=puts.length?puts.filter(t=>t.result==="WIN").length/puts.length:0;
 
-  // Curve data with dates
-  let c=0;
-  const curve=ft.map((t,i)=>{c=+(c+t.payout).toFixed(2);return{i:i+1,pl:c,date:t.openTime?t.openTime.slice(5,10):""};});
+  // Daily bar data
+  const dayMap2={};
+  ft.forEach(t=>{
+    const d=t.openTime?t.openTime.slice(0,10):"?";
+    if(!dayMap2[d])dayMap2[d]={date:d,label:t.openTime?t.openTime.slice(5,10):"",pl:0};
+    dayMap2[d].pl=+(dayMap2[d].pl+t.payout).toFixed(2);
+  });
+  const curve=Object.values(dayMap2).sort((a,b)=>a.date.localeCompare(b.date));
 
   // Best day
   const dayMap={};
@@ -326,8 +405,9 @@ function render(){
       <div style="font-size:11px;color:#546E7A">${ft.length} total · ${(wr*100).toFixed(1)}% win rate</div>
     </div>
     <div class="card">
-      <div class="label">Cumulative P&L</div>
-      <canvas id="plCanvas" width="600" height="220" style="width:100%;height:220px"></canvas>
+      <div class="label">Daily P&L</div>
+      <div style="font-size:9px;color:#546E7A;margin-bottom:10px;letter-spacing:1px">GREEN = PROFIT DAY · RED = LOSS DAY</div>
+      <canvas id="plCanvas" width="600" height="200" style="width:100%;height:200px"></canvas>
     </div>
     <div class="grid2">
       <div class="card">
