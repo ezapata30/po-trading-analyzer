@@ -373,7 +373,9 @@ function render(){
   }
 
   else if(currentView==="today"){
-    const today=new Date().toISOString().slice(0,10);
+    // Use Eastern time (UTC-4) for today's date
+  const easternNow=new Date(Date.now()-4*60*60*1000);
+  const today=easternNow.toISOString().slice(0,10);
     const todayT=ft.filter(t=>t.openTime&&t.openTime.startsWith(today));
     const tw=todayT.filter(t=>t.result==="WIN").length;
     const tl=todayT.filter(t=>t.result==="LOSS").length;
