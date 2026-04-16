@@ -122,6 +122,14 @@ function addCumPL(arr){
 }
 function fmtHour(h){const hr=parseInt(h);if(hr===0)return"12am";if(hr<12)return hr+"am";if(hr===12)return"12pm";return(hr-12)+"pm";}
 function fmtMoney(v){return(v>=0?"+$":"-$")+Math.abs(v).toFixed(2);}
+function fmtTime(ts){
+  if(!ts||ts.length<16) return ts||"";
+  const parts=ts.slice(11,16).split(":");
+  let h=parseInt(parts[0]),m=parts[1];
+  const ampm=h>=12?"pm":"am";
+  h=h%12||12;
+  return h+":"+m+ampm;
+}
 function wrColor(wr){return wr>=0.6?"#00E676":wr>=0.5?"#FFD600":"#FF1744";}
 
 let ALL_TRADES = addCumPL(RAW_DATA);
@@ -201,7 +209,7 @@ function openModal(t){
   rt.textContent=t.result; rt.style.cssText="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;background:"+(t.result==="WIN"?"#00E67622":"#FF174422")+";color:"+(t.result==="WIN"?"#00E676":"#FF1744")+";border:1px solid "+(t.result==="WIN"?"#00E67644":"#FF174444");
   const dt=document.getElementById("modal-dir-tag");
   dt.textContent=t.direction; dt.style.cssText="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;background:"+(t.direction==="CALL"?"#00E5FF22":"#D500F922")+";color:"+(t.direction==="CALL"?"#00E5FF":"#D500F9")+";border:1px solid "+(t.direction==="CALL"?"#00E5FF44":"#D500F944");
-  const fields=[["Open Time",t.openTime&&t.openTime.slice(0,16)],["Asset",t.asset],
+  const fields=[["Open Time",(t.openTime?t.openTime.slice(0,10)+" "+fmtTime(t.openTime):"")],["Asset",t.asset],
     ["Entry",(t.openPrice||0).toFixed(5)],["Exit",(t.closePrice||0).toFixed(5)],
     ["Stake","$"+(t.stake||0).toFixed(2)],["P&L",fmtMoney(t.payout||0)],
     ["Payout",((t.payoutPct||0)*100).toFixed(1)+"%"],["Mode",t.autoTrade?"Auto":"Manual"]];
@@ -487,7 +495,7 @@ function render(){
       <div class="section-label">Today's Trades</div>
       ${[...todayT].reverse().map(t=>`
       <div class="trade-row" style="border-left-color:${t.result==="WIN"?"#00E676":"#FF1744"}" onclick="openModal(${JSON.stringify(t).replace(/"/g,"&quot;")})">
-        <div style="color:#546E7A;font-size:10px">${t.openTime&&t.openTime.slice(11,16)}</div>
+        <div style="color:#546E7A;font-size:10px">${t.openTime?fmtTime(t.openTime):""}</div>
         <span class="tag" style="background:${t.result==="WIN"?"#00E67622":"#FF174422"};color:${t.result==="WIN"?"#00E676":"#FF1744"};border:1px solid ${t.result==="WIN"?"#00E67644":"#FF174444"}">${t.result}</span>
         <span class="tag" style="background:${t.direction==="CALL"?"#00E5FF22":"#D500F922"};color:${t.direction==="CALL"?"#00E5FF":"#D500F9"};border:1px solid ${t.direction==="CALL"?"#00E5FF44":"#D500F944"}">${t.direction}</span>
         <div style="color:#546E7A;font-size:10px">$${(t.stake||0).toFixed(0)} stake</div>
@@ -506,7 +514,7 @@ function render(){
     <div class="trade-row" style="grid-template-columns:40px 58px 128px 88px 58px 65px 65px 36px;border-left-color:${t.result==="WIN"?"#00E676":"#FF1744"}" onclick="openModal(${JSON.stringify(t).replace(/"/g,"&quot;")})">
       <div style="color:#546E7A;font-size:10px">#${t.id}</div>
       <span class="tag" style="background:${t.result==="WIN"?"#00E67622":"#FF174422"};color:${t.result==="WIN"?"#00E676":"#FF1744"};border:1px solid ${t.result==="WIN"?"#00E67644":"#FF174444"}">${t.result}</span>
-      <div style="color:#546E7A;font-size:10px">${t.openTime&&t.openTime.slice(0,16)}</div>
+      <div style="color:#546E7A;font-size:10px">${(t.openTime?t.openTime.slice(0,10)+" "+fmtTime(t.openTime):"")}</div>
       <div style="color:#FFD600;font-weight:700;font-size:10px">${t.asset}</div>
       <span class="tag" style="background:${t.direction==="CALL"?"#00E5FF22":"#D500F922"};color:${t.direction==="CALL"?"#00E5FF":"#D500F9"};border:1px solid ${t.direction==="CALL"?"#00E5FF44":"#D500F944"}">${t.direction}</span>
       <div style="color:#E8F0FE;font-size:10px">$${(t.stake||0).toFixed(0)}</div>
