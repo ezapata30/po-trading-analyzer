@@ -373,16 +373,15 @@ function render(){
   }
 
   else if(currentView==="today"){
-    // Use Eastern time (UTC-4) for today's date
-  const easternNow=new Date(Date.now()-4*60*60*1000);
-  const today=easternNow.toISOString().slice(0,10);
+    const easternNow=new Date(Date.now()-4*60*60*1000);
+    const today=easternNow.toISOString().slice(0,10);
     const todayT=ft.filter(t=>t.openTime&&t.openTime.startsWith(today));
     const tw=todayT.filter(t=>t.result==="WIN").length;
     const tl=todayT.filter(t=>t.result==="LOSS").length;
     const tpl=+todayT.reduce((s,t)=>s+t.payout,0).toFixed(2);
     const twr=todayT.length?tw/todayT.length:0;
     if(todayT.length===0){
-      html=`<div class="card empty"><div class="empty-icon">📭</div><div style="color:#546E7A;font-size:14px">No trades yet today</div><div style="color:#546E7A;font-size:11px;margin-top:6px">Upload today's XLSX to see results</div></div>`;
+      html=`<div class="card empty"><div class="empty-icon">📭</div><div style="color:#546E7A;font-size:14px">No trades yet today</div><div id="todayDebug" style="color:#546E7A;font-size:10px;margin-top:6px"></div></div>`;
     } else {
       html=`
       <div class="card hero">
@@ -517,6 +516,14 @@ async function fetchLiveData() {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 render();
+// Debug: show what date app thinks today is
+setTimeout(()=>{
+  const el=document.getElementById('todayDebug');
+  if(el){
+    const en=new Date(Date.now()-4*60*60*1000);
+    el.textContent='Looking for: '+en.toISOString().slice(0,10)+' ('+new Date().toISOString().slice(0,10)+' UTC)';
+  }
+},100);
 fetchLiveData(); // fetch on load
 setInterval(fetchLiveData, 5 * 60 * 1000); // refresh every 5 minutes
 </script>
