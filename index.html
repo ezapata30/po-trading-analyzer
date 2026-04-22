@@ -213,7 +213,8 @@ function setFilter(f){
 function openModal(t){
   document.getElementById("modal").style.display="flex";
   document.getElementById("modal-dot").style.background=t.result==="WIN"?"#00E676":"#FF1744";
-  document.getElementById("modal-title").textContent="Trade #"+t.id;
+  document.getElementById("modal-title").textContent = "Trade #" + t.id +
+    (t.signal && t.signal !== "Untagged" ? " · " + t.signal : "");
   const rt=document.getElementById("modal-result-tag");
   rt.textContent=t.result; rt.style.cssText="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;background:"+(t.result==="WIN"?"#00E67622":"#FF174422")+";color:"+(t.result==="WIN"?"#00E676":"#FF1744")+";border:1px solid "+(t.result==="WIN"?"#00E67644":"#FF174444");
   const dt=document.getElementById("modal-dir-tag");
